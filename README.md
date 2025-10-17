@@ -13,7 +13,12 @@ Network Attached Storage on a Python server running in Ubuntu
 - To access server on Windows
   - Open 1st terminal window and run ssh <ubuntu_user>@<ubuntu_ip>, then run python3 /nas/storage/files/server.py
   - Open 2nd terminal window and run ssh -L 9090:localhost:8888 <ubuntu_user>@<ubuntu_ip> to create a tunnel to the running server
+  - Or just run access_nas.bat file and skip above 2 steps
   - Go to browser and enter http://localhost:9090
+  - After closing server that was started using the bat file, it is needed to kill the python process
+  - Find PID of the process by running sudo netstat -tulnp | grep :8888
+  - sudo kill -9 pid
+  - Process is automatically killed if server is started manually by running server.py
 
 - To access server on Android
   - Install Termux from Play Store

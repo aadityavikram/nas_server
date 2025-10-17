@@ -1,0 +1,64 @@
+1. ssh-keygen on windows to create public key
+2. Copy contents of public key (~/.ssh/id_rsa.pub or ~/.ssh/id_ed25519.pub) to ~/.ssh/authorized_keys on Ubuntu
+3. To edit a text file in terminal, use VIM
+	a. sudo vim <path_of_file>
+	b. Press I to enter edit mode
+	c. Press escape to enter non-edit mode
+	d. Press dd in non-edit mode to delete entire line
+	e. In non-edit mode, press :wq to save and exit, :q! to exit without saving
+4. To edit a text file in GUI, use Gedit
+	a. gedit <path_of_file>
+5. To read a text file in terminal, cat <path_of_file>
+6. Now you can ssh to Ubuntu without entering password
+7. To enter server from a device on same network, ssh <user>@<ip>
+	Ex. ssh j@192.168.1.46
+8. IP Address will change each time server restarts
+9. To check current IP address, hostname -I. This command will give 2 IPs, one will be the local IPV4 address (required for SSH), other will be of docker image. Usually one with 192.168.x.x will be the correct IP
+10. Run access_nas.bat file from Windows desktop
+	a. This will create a server at address http://localhost:9090. Access the address in browser.
+	b. It will point to /nas/storage/files. Can change this location in bat file
+11. After closing NAS Server, find process running on port 8888 and kill it (see point 17)
+12. Can also run server on Windows desktop with the following steps: -
+	a. Open 1st terminal window then run, ssh <user>@<ip>, then run python3 /nas/storage/files/server.py
+	b. Open 2nd terminal window then run, ssh -L 9090:localhost:8888 <user>@<ip>
+	c. Go to browser and go to http://localhost:9090
+	d. In this method, there is no need to kill the process
+13. NAS folder path: /nas/storage
+14. To transfer file from a device to server, scp <path_of_file_on_device> <user>@<ip>:/nas/storage
+	Ex. scp .\Downloads\ABCD.txt j@192.168.1.46:/nas/storage
+15. To transfer file from server to a device, scp <user>@<ip>:/nas/storage <path_of_file_on_device>
+	Ex. scp j@192.168.1.46:/nas/storage .\Downloads\ABCD.txt
+16. To transfer non-empty folders, add -r to commands
+	Ex. scp -r .\Downloads j@192.168.1.46:/nas/storage
+17. To exit server, run command exit
+18. To find a process running on a port, for ex. 8888
+	a. sudo netstat -tulnp | grep :8888
+	b. Output should be like following
+		tcp        0      0 0.0.0.0:8888            0.0.0.0:*               LISTEN      15597/python3
+	c. Here the process ID is 15597
+	d. To kill a process, sudo kill -9 <process_id>
+19. To check if Shinobi is running, pm2 status
+20. To start Shinobi (if not running)
+	a. cd /home/Shinobi
+	b. npm install
+	c. pm2 start camera.js
+	d. pm2 save
+21. To login to Shinobi on Ubuntu
+	a. Go to browser
+	b. Open http://localhost:8080/super
+	c. Default username is admin@shinobi.video
+	d. Default password is admin
+	e. Create account that will manage cameras
+	f. Go to browser and go to http://localhost:8080 to access cameras
+	g. Shinobi requires MariaDB which is not supported in Ubuntu 18.04 LTS now
+22. Shinobi installation instructions on Jetson Nano
+	https://docs.shinobi.video/installation/jetson-nano
+23. To access SSH server on Android: -
+	a. Install Termux from Play Store
+	b. Run command, pkg install socat
+	c. Open 1st terminal window then run, ssh <user>@<ip>, then run python3 /nas/storage/files/server.py
+	d. Open 2nd terminal window then run, ssh -L 9090:localhost:8888 <user>@<ip>
+	e. Open 3rd terminal window then run, socat TCP-LISTEN:9090,bind=<android_ip>,fork TCP:127.0.0.1:9090
+	f. Go to browser and go to http://<android_ip>:9090
+	g. To find Android IP, go to Settings > Connections > Wifi Name > Scroll down to find IP Address
+	h. Type exit to close open terminals

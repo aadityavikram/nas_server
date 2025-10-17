@@ -1,0 +1,331 @@
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: 'Share Tech Mono', monospace;
+    background-color: black;
+    color: #00ff00;
+    display: flex;
+    flex-direction: column;
+    padding-top: 100px; /* space for fixed header */
+}
+
+/* === HEADER BAR === */
+.header-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+    background-color: black;
+    border-bottom: 1px solid #00ff00;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 40px;
+    flex-wrap: wrap;
+    transition: box-shadow 0.3s ease;
+}
+
+body.scrolled .header-bar {
+    box-shadow: 0 2px 10px rgba(0, 255, 0, 0.2);
+}
+
+/* === LEFT: Heading === */
+.header-bar h1 {
+    margin: 0;
+    font-size: 1em;
+    animation: flicker 2s infinite alternate;
+}
+
+.folder-path {
+    font-size: 0.9em;
+    color: #ccc;
+    margin-top: -10px;
+    margin-bottom: 10px;
+}
+
+.file-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 auto;
+    padding: 0 40px;
+}
+
+.file-table th,
+.file-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #00ff00;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.file-table th {
+    background-color: #111;
+    color: #00ff00;
+    font-size: 1em;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.file-table tr:hover td {
+    background-color: #002200;
+}
+
+.file-table td a {
+    color: #00ff00;
+    text-decoration: none;
+}
+
+.file-table td a:hover {
+    text-shadow: 0 0 5px #00ff00;
+    text-decoration: underline;
+}
+
+/* === RIGHT: Options + Search === */
+.right-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-left: auto;
+}
+
+.dropdown-main {
+    position: relative;
+}
+
+.dots-btn-main {
+    font-size: 1em;
+    color: #00ff00;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+.dropdown-content-main {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: black;
+    border: 1px solid #00ff00;
+    border-radius: 4px;
+    min-width: 120px;
+    z-index: 999;
+    padding: 5px 0;
+    box-shadow: 0 2px 10px rgba(0, 255, 0, 0.3);
+}
+
+.dropdown-item-main {
+    padding: 8px 12px;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    color: #00ff00;
+    font-family: 'Share Tech Mono', monospace;
+    border: none;
+    cursor: pointer;
+}
+
+.dropdown-item-main:hover {
+    background-color: #003300;
+}
+
+.dropdown-content-main .dropdown-item-main {
+    padding: 8px 10px;
+    color: #00ff00;
+    background: transparent;
+    border: none;
+    width: 100%;
+    text-align: left;
+    font-family: 'Share Tech Mono', monospace;
+    cursor: pointer;
+}
+
+.dropdown-content-main .dropdown-item-main:hover {
+    background-color: #003300;
+}
+
+/* === Search Form === */
+.search-form {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.search-form input {
+    padding: 8px;
+    font-size: 1em;
+    border: none;
+    outline: none;
+    width: 200px;
+    background-color: #111;
+    color: #00ff00;
+    border-bottom: 2px solid #00ff00;
+}
+
+.search-form button {
+    padding: 8px 16px;
+    font-size: 1em;
+    border: none;
+    background-color: #00ff00;
+    color: black;
+    cursor: pointer;
+    margin-left: 10px;
+    white-space: nowrap;
+}
+
+.search-form button:hover {
+    background-color: #00cc00;
+}
+
+/* === MAIN CONTENT === */
+main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* PROGRESS BAR */
+.progress-container {
+    position: fixed;
+    top: 15%;
+    right: 40px;
+    width: 25vw; /* 25% of viewport width */
+    background-color: #111;
+    border: 1px solid #00ff00;
+    height: 20px;
+    border-radius: 5px;
+    overflow: hidden;
+    z-index: 1001;
+    box-shadow: 0 2px 10px rgba(0, 255, 0, 0.2);
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: #00ff00;
+    width: 0%;
+    transition: width 0.2s ease;
+}
+
+.progress-text {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.85em;
+    color: white;
+    font-weight: bold;
+    pointer-events: none;
+	z-index: 1;
+}
+
+.dropdown {
+    display: inline-block;
+    position: relative;
+    margin-left: 10px;
+    vertical-align: middle;
+}
+
+.dots-btn {
+    background: transparent;
+    border: none;
+    color: #00ff00;
+    font-size: 1.2em;
+    cursor: pointer;
+    padding: 0 5px;
+    user-select: none;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    left: 20px;
+	top: 100%;
+    background-color: black;
+    border: 1px solid #00ff00;
+    border-radius: 4px;
+    min-width: 100px;
+    z-index: 10;
+	box-shadow: 0 2px 5px rgba(0, 255, 0, 0.3);
+	max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Delete button inside dropdown */
+.delete-btn {
+    background: transparent;
+    border: none;
+	font-size: 1em;
+    color: #00ff00;
+    width: 100%;
+    padding: 8px 10px;
+    text-align: left;
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+}
+
+.delete-btn:hover {
+    background-color: #003300;
+}
+
+.dropdown-link {
+    display: block;
+    color: #00ff00;
+    text-decoration: none;
+    padding: 8px 10px;
+    font-family: 'Share Tech Mono', monospace;
+}
+
+.dropdown-link:hover {
+    background-color: #003300;
+}
+
+/* === FOOTER === */
+footer {
+    text-align: center;
+    padding: 20px;
+    font-size: 0.9em;
+    color: #00ff00;
+    opacity: 0.7;
+    border-top: 1px solid #00ff00;
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	width: 100%;
+}
+
+/* === FLICKER ANIMATION === */
+@keyframes flicker {
+    0% { opacity: 1; }
+    50% { opacity: 0.8; }
+    100% { opacity: 1; }
+}
+
+/* === RESPONSIVE STYLES === */
+@media (max-width: 600px) {
+    .right-controls {
+        flex-direction: column;
+        align-items: flex-end;
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    .search-form {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .search-form input {
+        width: 100%;
+        margin-top: 5px;
+    }
+}

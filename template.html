@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NAS</title>
+    <link rel="stylesheet" href="/style.css">
+    <script src="/main.js" defer></script>
+</head>
+<body>
+
+    <div class="header-bar">
+		<h1>{{currentFolderName}}</h1>
+
+        <div class="right-controls">
+
+            <div class="dropdown-main">
+                <button class="dots-btn-main" onclick="toggleDropdownMain(event)">Options</button>
+                <div class="dropdown-content-main">
+                    <button class="dropdown-item-main" onclick="triggerFileUpload()">Upload File</button>
+					<button class="dropdown-item-main" onclick="triggerFolderUpload()">Upload Folder</button>
+                    <button class="dropdown-item-main" onclick="createFolder()">New Folder</button>
+                </div>
+            </div>
+
+            <!-- Search form -->
+            <form method="GET" class="search-form">
+                <input type="text" name="q" placeholder="Search files..." value="{{query}}">
+                <button type="submit">Search</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Hidden file input triggered by JS -->
+    <input type="file" id="fileInput" style="display:none" />
+
+    <!-- Progress bar container -->
+    <div class="progress-container" id="progressContainer" style="display: none;">
+        <div class="progress-bar" id="progressBar">
+            <span class="progress-text" id="progressText">0%</span>
+        </div>
+    </div>
+
+    <main>
+		{{file_table}}
+
+		<footer>
+			<p class="folder-path">{{currentFolderPath}}</p>
+			<p>Made by AadiVik</p>
+		</footer>
+	</main>
+
+    <!-- Add shadow to header on scroll -->
+    <script>
+        window.addEventListener("scroll", () => {
+            document.body.classList.toggle("scrolled", window.scrollY > 0);
+        });
+    </script>
+</body>
+</html>

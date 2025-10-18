@@ -90,7 +90,7 @@ Network Attached Storage on a Python server running in Ubuntu
 
 ![Preview_Functionality_Video](assets/Preview_Functionality_Video.png)
 
-## Preview Functionality (Image) with Navigation and Preview
+## Preview Functionality (Image) with Navigation and Preview. Can be opened in new tab by clicking in preview
 
 ![Preview_Functionality_Image](assets/Preview_Functionality_Image.png)
 

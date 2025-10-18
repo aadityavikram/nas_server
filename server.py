@@ -20,6 +20,50 @@ HIDDEN_FILES = {"server.py", "template.html", "style.css", "main.js"}
 
 class FileHandler(SimpleHTTPRequestHandler):
 
+    def send_head_with_range(self):
+        """Serve a GET request supporting Range header for partial content."""
+        path = self.translate_path(self.path)
+        if not os.path.isfile(path):
+            self.send_error(404, "File not found")
+            return None
+
+        ctype = self.guess_type(path)
+        fs = os.stat(path)
+        size = fs.st_size
+
+        range_header = self.headers.get('Range')
+        if range_header:
+            # Example: Range: bytes=1000-2000
+            import re
+            m = re.match(r'bytes=(\d+)-(\d*)', range_header)
+            if m:
+                start = int(m.group(1))
+                end = m.group(2)
+                if end:
+                    end = int(end)
+                else:
+                    end = size - 1
+                if start >= size:
+                    self.send_error(416, "Requested Range Not Satisfiable")
+                    return None
+                self.send_response(206)
+                self.send_header("Content-type", ctype)
+                self.send_header("Accept-Ranges", "bytes")
+                self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
+                self.send_header("Content-Length", str(end - start + 1))
+                self.end_headers()
+                return open(path, 'rb'), start, end
+            else:
+                # Malformed Range header
+                self.send_error(400, "Bad Range header")
+                return None
+        else:
+            self.send_response(200)
+            self.send_header("Content-type", ctype)
+            self.send_header("Content-Length", str(size))
+            self.end_headers()
+            return open(path, 'rb'), 0, size - 1
+
     def list_directory(self, path):
         try:
             with open(os.path.join(DIRECTORY, "template.html"), "r", encoding="utf-8") as f:
@@ -369,9 +413,31 @@ class FileHandler(SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(b"Failed to create ZIP file")
         else:
-            # Default to super handler (serves files/listing)
+            # Default file serving with Range support
             try:
-                super().do_GET()
+                f = None
+                # Only handle Range requests for files, not directories or special URLs
+                path = self.translate_path(self.path)
+                if os.path.isfile(path):
+                    result = self.send_head_with_range()
+                    if result is None:
+                        return  # error already sent
+                    f, start, end = result
+
+                    f.seek(start)
+                    remaining = end - start + 1
+                    bufsize = 64*1024
+                    while remaining > 0:
+                        read_len = min(bufsize, remaining)
+                        data = f.read(read_len)
+                        if not data:
+                            break
+                        self.wfile.write(data)
+                        remaining -= len(data)
+                    f.close()
+                else:
+                    # Let superclass handle directories or other requests
+                    super().do_GET()
             except BrokenPipeError:
                 print("Client disconnected during response (BrokenPipeError)")
             except ConnectionResetError:

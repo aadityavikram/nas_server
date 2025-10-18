@@ -343,10 +343,6 @@ function createFolder() {
 }
 
 function previewFile(fileName) {
-
-    console.log("Matching fileName:", fileName);
-    console.log("Image files:", mediaFiles.map(f => f.split('/').pop()));
-
     const ext = fileName.split('.').pop().toLowerCase();
 
     const imageExtensions = ["png", "jpg", "jpeg", "gif", "bmp", "webp"];
@@ -361,12 +357,7 @@ function previewFile(fileName) {
 
     const fullPath = currentPath.endsWith("/") ? currentPath + fileName : currentPath + "/" + fileName;
 
-    let content = "";
-
-    const fileUrl = fullPath;
-	console.log("File URL for Preview: " + fileUrl);
-
-	document.getElementById("previewFileName").textContent = fileName;
+    document.getElementById("previewFileName").textContent = fileName;
 
 	// Get all image links on the page
     const links = Array.from(document.querySelectorAll('.file-table td a'));
@@ -378,28 +369,41 @@ function previewFile(fileName) {
     // Remove duplicates using Set
     mediaFiles = Array.from(new Set(hrefs));
 
-    console.log('Unique media files:', mediaFiles);
-
-    // Find index of current image
-    const clickedFileName = fileName.split('/').pop().toLowerCase();
+    // Find index of current media
     currentMediaIndex = mediaFiles.findIndex(f => {
         const decodedName = decodeURIComponent(f).split('/').pop().toLowerCase();
         return decodedName === fileName.toLowerCase();
     });
 
-    console.log("Matched index:", currentMediaIndex);
-
     if (["png", "jpg", "jpeg", "gif", "bmp", "webp"].includes(ext)) {
-        content = `<img src="${fileUrl}" alt="Image Preview" style="max-width: 100%; max-height: 80vh;" />`;
+        document.getElementById("previewContent").innerHTML = `<img src="${fullPath}" alt="Image Preview" style="max-width: 100%; max-height: 80vh;" />`;
+        updateCarousel();
+        document.getElementById("previewModal").style.display = "flex";
     } else if (["mp4", "webm", "ogg"].includes(ext)) {
-        content = `<video controls style="max-width: 100%; max-height: 80vh;"><source src="${fileUrl}" type="video/${ext}">Your browser does not support the video tag.</video>`;
+        document.getElementById("previewContent").innerHTML = `
+            <video controls autoplay style="max-width: 100%; max-height: 80vh;">
+                <source src="${fullPath}" type="video/${ext}">
+                Your browser does not support the video tag.
+            </video>
+        `;
+        updateCarousel();
+        document.getElementById("previewModal").style.display = "flex";
     } else if (["mp3", "wav", "ogg"].includes(ext)) {
-        content = `<audio controls><source src="${fileUrl}" type="audio/${ext}">Your browser does not support the audio element.</audio>`;
+        // existing audio preview code...
+        // hide carousel for audio files
+        document.getElementById("mediaCarousel").style.display = "none";
+        // your existing code for audio below ...
+        const content = `<audio controls><source src="${fullPath}" type="audio/${ext}">Your browser does not support the audio element.</audio>`;
+        document.getElementById("previewContent").innerHTML = content;
+        document.getElementById("previewModal").style.display = "flex";
     } else if (["pdf"].includes(ext)) {
-        content = `<iframe src="${fileUrl}" style="width:100%; height:300vh;" frameborder="0"></iframe>`;
+        document.getElementById("mediaCarousel").style.display = "none";
+        const content = `<iframe src="${fullPath}" style="width:100%; height:300vh;" frameborder="0"></iframe>`;
+        document.getElementById("previewContent").innerHTML = content;
+        document.getElementById("previewModal").style.display = "flex";
     } else if (["txt", "md", "json", "log", "js", "py", "html", "css"].includes(ext)) {
-        // Load text content via fetch
-        fetch(fileUrl)
+        document.getElementById("mediaCarousel").style.display = "none";
+        fetch(fullPath)
             .then(response => response.text())
             .then(text => {
                 const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -410,61 +414,29 @@ function previewFile(fileName) {
                 alert("Failed to load file for preview.");
                 console.error(err);
             });
-        return;
     } else {
-        content = `<p>Preview not supported for this file type.</p><a href="${fileUrl}" download>Download File</a>`;
+        document.getElementById("mediaCarousel").style.display = "none";
+        const content = `<p>Preview not supported for this file type.</p><a href="${fullPath}" download>Download File</a>`;
+        document.getElementById("previewContent").innerHTML = content;
+        document.getElementById("previewModal").style.display = "flex";
     }
-
-    document.getElementById("previewContent").innerHTML = content;
-    document.getElementById("previewModal").style.display = "flex";
 }
 
+// Update showPrevMedia and showNextMedia to also update carousel selection
 function showPrevMedia() {
     if (mediaFiles.length === 0) return;
 
     currentMediaIndex = (currentMediaIndex - 1 + mediaFiles.length) % mediaFiles.length;
-    const newPath = mediaFiles[currentMediaIndex];
-    const fileName = newPath.split('/').pop();
-    const ext = fileName.split('.').pop().toLowerCase();
-
-    document.getElementById("previewFileName").textContent = fileName;
-
-    if (["png", "jpg", "jpeg", "gif", "bmp", "webp"].includes(ext)) {
-        document.getElementById("previewContent").innerHTML = `<img src="${newPath}" style="max-width:100%; max-height:80vh;" />`;
-    } else if (["mp4", "webm", "ogg"].includes(ext)) {
-        document.getElementById("previewContent").innerHTML = `
-            <video controls style="max-width:100%; max-height:80vh;">
-                <source src="${newPath}" type="video/${ext}">
-                Your browser does not support the video tag.
-            </video>
-        `;
-    } else {
-        document.getElementById("previewContent").innerHTML = `<p>Unsupported media type.</p>`;
-    }
+    previewMediaAtIndex(currentMediaIndex);
+    updateCarousel();
 }
 
 function showNextMedia() {
     if (mediaFiles.length === 0) return;
 
     currentMediaIndex = (currentMediaIndex + 1) % mediaFiles.length;
-    const newPath = mediaFiles[currentMediaIndex];
-    const fileName = newPath.split('/').pop();
-    const ext = fileName.split('.').pop().toLowerCase();
-
-    document.getElementById("previewFileName").textContent = fileName;
-
-    if (["png", "jpg", "jpeg", "gif", "bmp", "webp"].includes(ext)) {
-        document.getElementById("previewContent").innerHTML = `<img src="${newPath}" style="max-width:100%; max-height:80vh;" />`;
-    } else if (["mp4", "webm", "ogg"].includes(ext)) {
-        document.getElementById("previewContent").innerHTML = `
-            <video controls style="max-width:100%; max-height:80vh;">
-                <source src="${newPath}" type="video/${ext}">
-                Your browser does not support the video tag.
-            </video>
-        `;
-    } else {
-        document.getElementById("previewContent").innerHTML = `<p>Unsupported media type.</p>`;
-    }
+    previewMediaAtIndex(currentMediaIndex);
+    updateCarousel();
 }
 
 document.addEventListener('keydown', (e) => {
@@ -479,6 +451,105 @@ document.addEventListener('keydown', (e) => {
         }
     }
 });
+
+function updateCarousel() {
+    const carousel = document.getElementById("mediaCarousel");
+    carousel.innerHTML = "";
+
+    if (mediaFiles.length === 0) {
+        carousel.style.display = "none";
+        return;
+    }
+
+    carousel.style.display = "block";
+
+    const total = mediaFiles.length;
+
+    // Calculate window start and end indices
+    // Want currentMediaIndex -1 (before), currentMediaIndex (current), +1 and +2 after
+    // Clamp indices to array bounds
+    let start = currentMediaIndex - 1;
+    let end = currentMediaIndex + 2;
+
+    // Adjust if start < 0
+    if (start < 0) {
+        end += -start; // shift right side window
+        start = 0;
+    }
+    // Adjust if end >= total
+    if (end >= total) {
+        let diff = end - (total - 1);
+        start = Math.max(0, start - diff);
+        end = total - 1;
+    }
+
+    for (let index = start; index <= end; index++) {
+        const mediaPath = mediaFiles[index];
+        const fileName = mediaPath.split('/').pop();
+        const ext = fileName.split('.').pop().toLowerCase();
+
+        let thumb;
+
+        if (["png", "jpg", "jpeg", "gif", "bmp", "webp"].includes(ext)) {
+            thumb = document.createElement("img");
+            thumb.src = mediaPath;
+            thumb.alt = fileName;
+        } else if (["mp4", "webm", "ogg"].includes(ext)) {
+            thumb = document.createElement("video");
+            thumb.src = mediaPath;
+            thumb.muted = true;
+            thumb.loop = true;
+            thumb.playsInline = true;
+            thumb.style.height = "80px";
+            thumb.style.width = "auto";
+            thumb.autoplay = true;
+        } else {
+            // Skip unsupported thumbnails
+            continue;
+        }
+
+        thumb.classList.add("carousel-thumb");
+        if (index === currentMediaIndex) {
+            thumb.classList.add("selected");
+            // Optional: add extra styling for focus
+        }
+
+        thumb.addEventListener("click", () => {
+            currentMediaIndex = index;
+            previewMediaAtIndex(currentMediaIndex);
+            updateCarousel();
+        });
+
+        carousel.appendChild(thumb);
+    }
+}
+
+function previewMediaAtIndex(index) {
+    if (index < 0 || index >= mediaFiles.length) return;
+
+    const mediaPath = mediaFiles[index];
+    const fileName = mediaPath.split('/').pop();
+    const ext = fileName.split('.').pop().toLowerCase();
+
+    document.getElementById("previewFileName").textContent = fileName;
+
+    let content = "";
+
+    if (["png", "jpg", "jpeg", "gif", "bmp", "webp"].includes(ext)) {
+        content = `<img src="${mediaPath}" alt="${fileName}" style="max-width: 100%; max-height: 80vh;" />`;
+    } else if (["mp4", "webm", "ogg"].includes(ext)) {
+        content = `
+            <video controls autoplay style="max-width: 100%; max-height: 80vh;">
+                <source src="${mediaPath}" type="video/${ext}">
+                Your browser does not support the video tag.
+            </video>
+        `;
+    } else {
+        content = `<p>Unsupported media type.</p>`;
+    }
+
+    document.getElementById("previewContent").innerHTML = content;
+}
 
 function closeModal() {
     const modal = document.getElementById('previewModal');

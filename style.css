@@ -408,6 +408,69 @@ main {
     background-color: #00cc00;
 }
 
+#mediaCarousel {
+  display: flex;
+  gap: 12px;                  /* space between items */
+  overflow: hidden;           /* hide horizontal scroll */
+  max-width: 100%;            /* full width */
+  margin: 0 auto;             /* center horizontally */
+  flex-wrap: nowrap;          /* no wrapping */
+  align-items: center;        /* vertical center */
+  justify-content: center;    /* center items horizontally */
+  padding: 10px 0;
+  box-sizing: border-box;
+}
+
+.carousel-thumb {
+  flex: 0 0 auto;             /* prevent flex-grow, fix width */
+  width: 100px;               /* fixed width for consistency */
+  height: 80px;               /* fixed height */
+  object-fit: cover;
+  cursor: pointer;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  transition: border-color 0.3s ease, transform 0.3s ease;
+}
+
+.carousel-thumb.selected {
+  border-color: #007bff;
+  transform: scale(1.1);
+  z-index: 10;
+}
+
+.carousel-thumb:hover:not(.selected) {
+  border-color: #aaa;
+  transform: scale(1.05);
+}
+
+/* Wrapper to hold preview and carousel side by side */
+.preview-carousel-wrapper {
+    display: flex;
+    flex-direction: row;
+    gap: 15px;
+    max-height: 70vh;
+    overflow: hidden;
+}
+
+/* Ensure preview body takes up remaining space */
+.preview-body {
+    flex-grow: 1;
+    overflow-y: auto;
+    max-height: 100%;
+}
+
+/* Make carousel vertical */
+.media-carousel-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+    max-height: 100%;
+    align-items: center;
+    padding: 10px 0;
+    box-sizing: border-box;
+}
+
 /* === FOOTER === */
 footer {
     text-align: center;

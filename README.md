@@ -13,6 +13,7 @@ Network Attached Storage on a Python server running in Ubuntu
 - Download folder as zip and delete
 - Delete file and folder
 - Preview Files
+- Range request for video display to enable seek forward or jump to a timeline
 
 ## Steps
 

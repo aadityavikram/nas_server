@@ -22,7 +22,8 @@ timeout /t 2 > nul
 :: ===== Start SSH tunnel =====
 echo.
 echo Creating SSH tunnel (localhost:%LOCAL_PORT% : %UBUNTU_IP%:%REMOTE_PORT%)...
-start "" cmd /k ssh -L %LOCAL_PORT%:localhost:%REMOTE_PORT% %UBUNTU_USER%@%UBUNTU_IP%
+:: ===== 0.0.0.0 to open to all devices on current network =====
+start "" cmd /k ssh -L 0.0.0.0:%LOCAL_PORT%:localhost:%REMOTE_PORT% %UBUNTU_USER%@%UBUNTU_IP%
 
 :: ===== Display NAS URL for user to use =====
 set "STORAGE_URL=http://localhost:%LOCAL_PORT%"

@@ -2,6 +2,18 @@
 
 Network Attached Storage on a Python server running in Ubuntu
 
+## Functionalities
+
+- File access
+- Search in current directory
+- Subfolder access with function to go back to previous directory
+- Create new folder, upload file and folder in current directory
+- Progress bar on upload file
+- Download and delete file
+- Download folder as zip and delete
+- Delete file and folder
+- Preview Files
+
 ## Steps
 
 - Initial setup on Ubuntu
@@ -30,17 +42,6 @@ Network Attached Storage on a Python server running in Ubuntu
   - To find Android IP, go to Settings > Connections > Wi-Fi Name > Scroll down to find IP Address
   - Type exit to close open terminals
 
-## Functionalities
-
-- File access
-- Search in current directory
-- Subfolder access with function to go back to previous directory
-- Create new folder, upload file and folder in current directory
-- Progress bar on upload file
-- Download and delete file
-- Download folder as zip and delete
-- Delete file and folder
-
 ## Root Directory
 
 ![Root_Directory](assets/Root_Directory.png)
@@ -68,6 +69,10 @@ Network Attached Storage on a Python server running in Ubuntu
 ## Delete Functionality
 
 ![Delete_Functionality](assets/Delete_Functionality.png)
+
+## Preview Functionality
+
+![Preview_Functionality](assets/Preview_Functionality.png)
 
 ## Android file access
 

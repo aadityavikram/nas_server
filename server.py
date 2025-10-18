@@ -99,7 +99,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                         <button class="dots-btn" onclick="toggleDropdown(event)">&#8942;</button>
                         <div class="dropdown-content">
                             <a href="/download-zip?folder={quote(os.path.join(rel_path, name))}" class="dropdown-link">Download ZIP</a>
-                            <button class="delete-btn" onclick="deleteFile('{name}')">Delete</button>
+                            <button class="delete-btn" onclick="deleteFile('{name}', false)">Delete</button>
                         </div>
                     </div>
                 '''
@@ -109,7 +109,8 @@ class FileHandler(SimpleHTTPRequestHandler):
                         <button class="dots-btn" onclick="toggleDropdown(event)">&#8942;</button>
                         <div class="dropdown-content">
                             <a href="{quote(name)}" download class="dropdown-link">Download</a>
-                            <button class="delete-btn" onclick="deleteFile('{name}')">Delete</button>
+                            <button class="preview-btn" onclick="previewFile('{name}')">Preview</button>
+                            <button class="delete-btn" onclick="deleteFile('{name}', false)">Delete</button>
                         </div>
                     </div>
                 '''

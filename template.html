@@ -34,11 +34,14 @@
     <input type="file" id="fileInput" style="display:none" />
 
     <!-- Progress bar container -->
-    <div class="progress-container" id="progressContainer" style="display: none;">
-        <div class="progress-bar" id="progressBar">
-            <span class="progress-text" id="progressText">0%</span>
-        </div>
-    </div>
+    <div class="progress-wrapper" id="progressWrapper" style="display: none;">
+		<button id="cancelUploadBtn" class="cancel-upload-btn" title="Cancel Upload">X</button>
+		<div class="progress-container" id="progressContainer">
+			<div class="progress-bar" id="progressBar">
+				<span class="progress-text" id="progressText">0%</span>
+			</div>
+		</div>
+	</div>
 
     <main>
 		{{file_table}}
@@ -48,6 +51,14 @@
 			<p>Made by AadiVik</p>
 		</footer>
 	</main>
+	
+	<!-- File Preview Modal -->
+	<div id="previewModal" class="modal" style="display:none;">
+		<div class="modal-content">
+			<span class="close-btn-modal" onclick="closeModal()">X</span>
+			<div id="previewContent" class="preview-body"></div>
+		</div>
+	</div>
 
     <!-- Add shadow to header on scroll -->
     <script>

@@ -16,7 +16,7 @@ from datetime import datetime
 DIRECTORY = "/nas/storage/files"
 
 # Files you want to hide from the listing
-HIDDEN_FILES = {"server.py", "template.html", "style.css", "main.js"}
+HIDDEN_FILES = {"app.py", "server.py", "template.html", "style.css", "main.js"}
 
 class FileHandler(SimpleHTTPRequestHandler):
 

@@ -348,6 +348,17 @@ function previewFile(fileName) {
     console.log("Image files:", mediaFiles.map(f => f.split('/').pop()));
 
     const ext = fileName.split('.').pop().toLowerCase();
+
+    const imageExtensions = ["png", "jpg", "jpeg", "gif", "bmp", "webp"];
+    const videoExtensions = ["mp4", "webm", "ogg"];
+
+    // Show navigation buttons only if image or video
+    if (imageExtensions.includes(ext) || videoExtensions.includes(ext)) {
+        document.getElementById("navButtons").style.display = "block";
+    } else {
+        document.getElementById("navButtons").style.display = "none";
+    }
+
     const fullPath = currentPath.endsWith("/") ? currentPath + fileName : currentPath + "/" + fileName;
 
     let content = "";

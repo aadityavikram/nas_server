@@ -4,6 +4,7 @@ Network Attached Storage on a Python server running in Ubuntu
 
 ## Functionalities
 
+- Launcher GUI
 - File access
 - Search in current directory
 - Subfolder access with function to go back to previous directory
@@ -23,7 +24,17 @@ Network Attached Storage on a Python server running in Ubuntu
   - Give permission to current user to read and write from it with command sudo chmod 0755 /nas/storage/files
   - Transfer server.py, template.html, style.css and main.js to the above directory
 
-- To access server on Windows
+- To access server on Windows through GUI
+  - Run python app.py
+  - Open http://localhost:5000 in browser to open Launcher
+  - Enter credentials and wait for http://localhost:9090 to open
+
+- To access server on any device on same Wi-Fi after access is established on above system
+  - Get IPV4 of above system. If it is Windows, type ipconfig in terminal
+  - Let it be device_ip
+  - In browser, http://<device_ip>:9090
+
+- To access server on Windows through terminal
   - Open 1st terminal window and run ssh <ubuntu_user>@<ubuntu_ip>, then run python3 /nas/storage/files/server.py
   - Open 2nd terminal window and run ssh -L 9090:localhost:8888 <ubuntu_user>@<ubuntu_ip> to create a tunnel to the running server
   - Or just run access_nas.bat file and skip above 2 steps
@@ -33,7 +44,7 @@ Network Attached Storage on a Python server running in Ubuntu
   - sudo kill -9 pid
   - Process is automatically killed if server is started manually by running server.py
 
-- To access server on Android
+- To access server on Android through terminal
   - Install Termux from Play Store
   - Run command, pkg install socat
   - Open 1st terminal window and run ssh <ubuntu_user>@<ubuntu_ip>, then run python3 /nas/storage/files/server.py
@@ -42,6 +53,10 @@ Network Attached Storage on a Python server running in Ubuntu
   - Go to browser and enter http://<android_ip>:9090
   - To find Android IP, go to Settings > Connections > Wi-Fi Name > Scroll down to find IP Address
   - Type exit to close open terminals
+
+## NAS Launcher
+
+![Nas_Launcher](assets/Nas_Launcher.png)
 
 ## Root Directory
 

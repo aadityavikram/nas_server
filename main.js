@@ -560,3 +560,29 @@ function closeModal() {
     }
     modal.style.display = 'none';
 }
+
+document.getElementById('previewContent').addEventListener('click', (e) => {
+    const fileName = document.getElementById('previewFileName').textContent;
+    if (!fileName) return;
+
+    const imageExtensions = ["png", "jpg", "jpeg", "gif", "bmp", "webp"];
+    const ext = fileName.split('.').pop().toLowerCase();
+
+    if (!imageExtensions.includes(ext)) {
+        // Only open for images
+        return;
+    }
+
+    // Optional: ignore clicks on interactive elements inside previewContent (like <img> itself)
+    if (e.target.tagName.toLowerCase() !== 'img') {
+        return;
+    }
+
+    let fullPath = currentPath;
+    if (!fullPath.endsWith('/')) {
+        fullPath += '/';
+    }
+    fullPath += fileName;
+
+    window.open(fullPath, '_blank');
+});

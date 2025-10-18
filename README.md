@@ -70,9 +70,13 @@ Network Attached Storage on a Python server running in Ubuntu
 
 ![Delete_Functionality](assets/Delete_Functionality.png)
 
-## Preview Functionality
+## Preview Functionality (Image)
 
-![Preview_Functionality](assets/Preview_Functionality.png)
+![Preview_Functionality_Image](assets/Preview_Functionality_Image.png)
+
+## Preview Functionality (Text)
+
+![Preview_Functionality_Text](assets/Preview_Functionality_Text.png)
 
 ## Android file access
 

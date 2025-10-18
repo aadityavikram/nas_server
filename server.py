@@ -370,7 +370,14 @@ class FileHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(b"Failed to create ZIP file")
         else:
             # Default to super handler (serves files/listing)
-            super().do_GET()
+            try:
+                super().do_GET()
+            except BrokenPipeError:
+                print("Client disconnected during response (BrokenPipeError)")
+            except ConnectionResetError:
+                print("Client disconnected early (ConnectionResetError)")
+            except Exception as e:
+                print("Unexpected error in do_GET():", e)
 
             
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):

@@ -259,7 +259,8 @@ function previewFile(fileName) {
 
     let content = "";
 
-    const fileUrl = encodeURI(fullPath);
+    const fileUrl = fullPath;
+	console.log("File URL for Preview: " + fileUrl);
 
     if (["png", "jpg", "jpeg", "gif", "bmp", "webp"].includes(ext)) {
         content = `<img src="${fileUrl}" alt="Image Preview" style="max-width: 100%; max-height: 80vh;" />`;

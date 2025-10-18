@@ -190,6 +190,7 @@ main {
     flex: 1;
     display: flex;
     flex-direction: column;
+    padding-bottom: 120px;
 }
 
 /* PROGRESS BAR */
@@ -348,6 +349,7 @@ main {
     color: #00ff00;
     font-family: 'Share Tech Mono', monospace;
     padding: 20px;
+    width: 50%;
     max-width: 90%;
     max-height: 90%;
     border: 1px solid #00ff00;

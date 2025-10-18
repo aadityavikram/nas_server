@@ -356,7 +356,7 @@ function previewFile(fileName) {
     } else if (["mp3", "wav", "ogg"].includes(ext)) {
         content = `<audio controls><source src="${fileUrl}" type="audio/${ext}">Your browser does not support the audio element.</audio>`;
     } else if (["pdf"].includes(ext)) {
-        content = `<iframe src="${fileUrl}" style="width:100%; height:200vh;" frameborder="0"></iframe>`;
+        content = `<iframe src="${fileUrl}" style="width:100%; height:300vh;" frameborder="0"></iframe>`;
     } else if (["txt", "md", "json", "log", "js", "py", "html", "css"].includes(ext)) {
         // Load text content via fetch
         fetch(fileUrl)

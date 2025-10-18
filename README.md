@@ -70,6 +70,10 @@ Network Attached Storage on a Python server running in Ubuntu
 
 ![Delete_Functionality](assets/Delete_Functionality.png)
 
+## Preview Functionality (Video)
+
+![Preview_Functionality_Video](assets/Preview_Functionality_Video.png)
+
 ## Preview Functionality (Image)
 
 ![Preview_Functionality_Image](assets/Preview_Functionality_Image.png)

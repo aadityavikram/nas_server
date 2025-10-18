@@ -398,6 +398,8 @@ footer {
 	bottom: 0;
 	left: 0;
 	width: 100%;
+	background-color: black;
+	opacity: 1;
 }
 
 /* === FLICKER ANIMATION === */

@@ -1,6 +1,8 @@
 const currentPath = window.location.pathname;
 let currentXHR = null;
-let wasCancelled = false; 
+let wasCancelled = false;
+let folderUploadXHRs = [];
+let folderUploadCancelled = false;
 
 function triggerFileUpload() {
     const input = document.getElementById('fileInput');
@@ -66,19 +68,45 @@ document.getElementById("cancelUploadBtn").addEventListener("click", () => {
         document.getElementById("progressBar").style.width = "0%";
         document.getElementById("cancelUploadBtn").style.display = "none";
         alert("Upload cancelled.");
-		
-		const input = document.getElementById('fileInput');
-        const file = input.files[0];
-        const filename = file ? file.name : null;
-
-        if (filename) {
-            setTimeout(() => {
-                deleteFile(filename, true);
-                window.location.reload();
-            }, 1000);
-        } else {
+        setTimeout(() => {
             window.location.reload();
-        }
+        }, 1000);
+		
+//		const input = document.getElementById('fileInput');
+//        const file = input.files[0];
+//        const filename = file ? file.name : null;
+//
+//        if (filename) {
+//            setTimeout(() => {
+//                deleteFile(filename, true);
+//                window.location.reload();
+//            }, 1000);
+//        } else {
+//            window.location.reload();
+//        }
+    }
+
+    // Cancel folder upload if active
+    else if (folderUploadXHRs.length > 0) {
+        folderUploadCancelled = true;
+        folderUploadXHRs.forEach(xhr => {
+            try {
+                xhr.abort();
+            } catch (e) {
+                console.error("Error aborting XHR", e);
+            }
+        });
+        folderUploadXHRs = [];
+
+        document.getElementById("progressWrapper").style.display = "none";
+        document.getElementById("progressBar").style.width = "0%";
+        document.getElementById("progressText").textContent = "0%";
+        document.getElementById("cancelUploadBtn").style.display = "none";
+
+        alert("Folder upload cancelled.");
+        setTimeout(() => {
+            window.location.reload();
+        }, 1000);
     }
 });
 
@@ -92,37 +120,96 @@ function triggerFolderUpload() {
     input.onchange = () => {
         if (!input.files.length) return;
 
-        const files = input.files;
+        const files = Array.from(input.files);
         const currentPath = window.location.pathname;
 
+        const totalSize = files.reduce((acc, f) => acc + f.size, 0);
+        let uploadedSize = 0;
+        folderUploadXHRs = [];
+        folderUploadCancelled = false;
+
+        // Show progress bar UI
+        document.getElementById("progressWrapper").style.display = "flex";
+        document.getElementById("cancelUploadBtn").style.display = "inline";
+        document.getElementById("progressBar").style.width = "0%";
+        document.getElementById("progressText").textContent = "0%";
+
         const uploadFile = (file, relativePath) => {
-            const formData = new FormData();
-            formData.append("file", file);
-
-            // Upload with original folder structure
-            const uploadPath = `${currentPath}${relativePath.substring(0, relativePath.lastIndexOf("/"))}`;
-            const xhr = new XMLHttpRequest();
-
-            xhr.open("POST", `/upload?path=${encodeURIComponent(uploadPath)}`, true);
-
-            xhr.onreadystatechange = () => {
-                if (xhr.readyState === 4 && xhr.status >= 400) {
-                    console.error(`Upload failed for ${file.name}: ${xhr.responseText}`);
+            return new Promise((resolve, reject) => {
+                if (folderUploadCancelled) {
+                    reject("Upload cancelled.");
+                    return;
                 }
-            };
 
-            xhr.send(formData);
+                const formData = new FormData();
+                formData.append("file", file);
+
+                const uploadPath = `${currentPath}${relativePath.substring(0, relativePath.lastIndexOf("/"))}`;
+                const xhr = new XMLHttpRequest();
+
+                folderUploadXHRs.push(xhr); // Keep track for cancel
+
+                xhr.open("POST", `/upload?path=${encodeURIComponent(uploadPath)}`, true);
+
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable) {
+                        if (!xhr._lastLoaded) xhr._lastLoaded = 0;
+                        const delta = e.loaded - xhr._lastLoaded;
+                        xhr._lastLoaded = e.loaded;
+                        uploadedSize += delta;
+                        const percent = (uploadedSize / totalSize) * 100;
+                        document.getElementById("progressBar").style.width = percent + "%";
+                        document.getElementById("progressText").textContent = Math.round(percent) + "%";
+                    }
+                };
+
+                xhr.onreadystatechange = () => {
+                    if (xhr.readyState === 4) {
+                        if (folderUploadCancelled) {
+                            reject("Upload cancelled.");
+                        } else if (xhr.status >= 200 && xhr.status < 300) {
+                            resolve();
+                        } else {
+                            reject(`Upload failed for ${file.name}: ${xhr.statusText}`);
+                        }
+                    }
+                };
+
+                xhr.send(formData);
+            });
         };
 
-        for (const file of files) {
-            const relativePath = file.webkitRelativePath;
-            if (relativePath) {
-                uploadFile(file, relativePath);
-            }
-        }
+        (async () => {
+            try {
+                for (const file of files) {
+                    const relativePath = file.webkitRelativePath;
+                    if (relativePath) {
+                        await uploadFile(file, relativePath);
+                    }
+                    if (folderUploadCancelled) break;
+                }
 
-        // Refresh after a short delay to allow uploads to complete
-        setTimeout(() => window.location.reload(), 1500);
+                if (!folderUploadCancelled) {
+                    setTimeout(() => {
+                        document.getElementById("progressWrapper").style.display = "none";
+                        document.getElementById("cancelUploadBtn").style.display = "none";
+                        document.getElementById("progressBar").style.width = "0%";
+                        document.getElementById("progressText").textContent = "0%";
+                        window.location.reload();
+                    }, 1000);
+                }
+            } catch (err) {
+                if (folderUploadCancelled) {
+                    alert("Upload cancelled.");
+                } else {
+                    alert(err);
+                }
+                document.getElementById("progressWrapper").style.display = "none";
+                document.getElementById("cancelUploadBtn").style.display = "none";
+                document.getElementById("progressBar").style.width = "0%";
+                document.getElementById("progressText").textContent = "0%";
+            }
+        })();
     };
 
     input.click();
@@ -269,7 +356,7 @@ function previewFile(fileName) {
     } else if (["mp3", "wav", "ogg"].includes(ext)) {
         content = `<audio controls><source src="${fileUrl}" type="audio/${ext}">Your browser does not support the audio element.</audio>`;
     } else if (["pdf"].includes(ext)) {
-        content = `<iframe src="${fileUrl}" style="width:100%; height:80vh;" frameborder="0"></iframe>`;
+        content = `<iframe src="${fileUrl}" style="width:100%; height:200vh;" frameborder="0"></iframe>`;
     } else if (["txt", "md", "json", "log", "js", "py", "html", "css"].includes(ext)) {
         // Load text content via fetch
         fetch(fileUrl)

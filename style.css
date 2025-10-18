@@ -359,7 +359,7 @@ main {
     box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
 }
 
-.close-btn-model {
+.close-btn-modal {
     position: absolute;
     top: 10px;
     right: 15px;
@@ -372,7 +372,7 @@ main {
     font-family: 'Share Tech Mono', monospace;
 }
 
-.close-btn-model:hover {
+.close-btn-modal:hover {
     color: #ff4444;
     text-shadow: 0 0 5px red;
 }
@@ -386,6 +386,26 @@ main {
     border-radius: 5px;
 	flex-grow: 1;
     overflow-y: auto;
+}
+
+.image-nav {
+    margin-top: 15px;
+    text-align: center;
+}
+
+.image-nav button {
+    padding: 8px 16px;
+    margin: 0 10px;
+    font-size: 1em;
+    background-color: #00ff00;
+    border: none;
+    color: black;
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+}
+
+.image-nav button:hover {
+    background-color: #00cc00;
 }
 
 /* === FOOTER === */

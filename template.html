@@ -54,10 +54,21 @@
 	
 	<!-- File Preview Modal -->
 	<div id="previewModal" class="modal" style="display:none;">
-		<div class="modal-content">
-			<span class="close-btn-modal" onclick="closeModal()">X</span>
-			<div id="previewContent" class="preview-body"></div>
-		</div>
+        <div class="modal-content">
+            <span class="close-btn-modal" onclick="closeModal()">X</span>
+
+            <!-- File name -->
+            <h2 id="previewFileName" style="text-align: center; margin-top: 0;"></h2>
+
+            <!-- Preview content -->
+            <div id="previewContent" class="preview-body"></div>
+
+            <!-- Navigation buttons -->
+            <div class="image-nav">
+                <button onclick="showPrevImage()"><-</button>
+                <button onclick="showNextImage()">-></button>
+            </div>
+        </div>
 	</div>
 
     <!-- Add shadow to header on scroll -->

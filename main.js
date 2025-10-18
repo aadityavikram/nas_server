@@ -456,7 +456,7 @@ function updateCarousel() {
     const carousel = document.getElementById("mediaCarousel");
     carousel.innerHTML = "";
 
-    if (mediaFiles.length === 0) {
+    if (mediaFiles.length < 2) {
         carousel.style.display = "none";
         return;
     }

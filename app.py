@@ -14,30 +14,39 @@ HTML_FORM = """
 <head>
     <meta charset="UTF-8">
     <title>NAS Launcher</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
         body {
             background-color: black;
             color: #00ff00;
-            font-family: monospace;
+            font-family: 'Share Tech Mono', monospace;
             display: flex;
             flex-direction: column;
             align-items: center;
             padding-top: 100px;
         }
-        input {
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        input, button {
+            display: block;
+            width: 250px;
             margin: 10px;
             padding: 8px;
+            font-family: 'Share Tech Mono', monospace;
+        }
+        input {
             background: #111;
             border: 1px solid #00ff00;
             color: #00ff00;
-            font-family: monospace;
         }
         button {
             background-color: #00ff00;
             color: black;
-            padding: 10px 20px;
-            font-family: monospace;
             cursor: pointer;
+            border: none;
         }
         button:hover {
             background-color: #00cc00;
@@ -65,9 +74,20 @@ def index():
 
         threading.Thread(target=start_server, args=(username, ip, password), daemon=True).start()
         threading.Thread(target=port_forward, args=(username, ip, password), daemon=True).start()
-        threading.Thread(target=launch_browser_after_delay, args=(3,), daemon=True).start()
+        threading.Thread(target=launch_browser_after_delay, args=(1,), daemon=True).start()
 
-        return "<h2 style='color:lime;'>Launching NAS... You can close this tab now.</h2>"
+        return """
+        <html>
+          <head>
+            <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+          </head>
+          <body style="background-color:black;">
+            <h2 style="color:#00ff00; font-family: 'Share Tech Mono', monospace;">
+              Launching NAS... You can close this tab now.
+            </h2>
+          </body>
+        </html>
+        """
 
     return render_template_string(HTML_FORM)
 

@@ -17,7 +17,7 @@
 10. Run access_nas.bat file from Windows desktop
 	a. This will create a server at address http://localhost:9090. Access the address in browser.
 	b. It will point to /nas/storage/files. Can change this location in bat file
-11. After closing NAS Server, find process running on port 8888 and kill it (see point 18)
+11. After closing NAS Server, find process running on port 8888 and kill it (see point 17)
 12. Can also run server on Windows desktop with the following steps: -
 	a. Open 1st terminal window then run, ssh <user>@<ip>, then run python3 /nas/storage/files/server.py
 	b. Open 2nd terminal window then run, ssh -L 9090:localhost:8888 <user>@<ip>
@@ -53,7 +53,7 @@
 	g. Shinobi requires MariaDB which is not supported in Ubuntu 18.04 LTS now
 22. Shinobi installation instructions on Jetson Nano
 	https://docs.shinobi.video/installation/jetson-nano
-23. To access SSH server on Android: -
+23. To access SSH server on Android (termux): -
 	a. Install Termux from Play Store
 	b. Run command, pkg install socat
 	c. Open 1st terminal window then run, ssh <user>@<ip>, then run python3 /nas/storage/files/server.py
@@ -62,3 +62,9 @@
 	f. Go to browser and go to http://<android_ip>:9090
 	g. To find Android IP, go to Settings > Connections > Wifi Name > Scroll down to find IP Address
 	h. Type exit to close open terminals
+24. Simpler process to access server on all devices connected to same Wi-Fi
+	a. Download /nas/storage/files/app.py to a system where server has to be accessed
+	b. python app.py
+	c. In browser, http://localhost:5000 then enter credentials and wait for localhost:9090 to be opened
+	d. Find IPV4 of this device. If it is Windows, run ipconfig. Let it be device_ip
+	e. On any other device on same Wi-Fi in browser, http://<device_ip>:9090

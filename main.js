@@ -3,8 +3,8 @@ let currentXHR = null;
 let wasCancelled = false;
 let folderUploadXHRs = [];
 let folderUploadCancelled = false;
-let imageFiles = [];
-let currentImageIndex = -1;
+let mediaFiles = [];
+let currentMediaIndex = -1;
 
 function triggerFileUpload() {
     const input = document.getElementById('fileInput');
@@ -345,7 +345,7 @@ function createFolder() {
 function previewFile(fileName) {
 
     console.log("Matching fileName:", fileName);
-    console.log("Image files:", imageFiles.map(f => f.split('/').pop()));
+    console.log("Image files:", mediaFiles.map(f => f.split('/').pop()));
 
     const ext = fileName.split('.').pop().toLowerCase();
     const fullPath = currentPath.endsWith("/") ? currentPath + fileName : currentPath + "/" + fileName;
@@ -355,26 +355,30 @@ function previewFile(fileName) {
     const fileUrl = fullPath;
 	console.log("File URL for Preview: " + fileUrl);
 
+	document.getElementById("previewFileName").textContent = fileName;
+
+	// Get all image links on the page
+    const links = Array.from(document.querySelectorAll('.file-table td a'));
+    const hrefs = links
+        .map(link => link.getAttribute('href'))
+        .filter(href => href && /\.(png|jpe?g|gif|bmp|webp|mp4|webm|ogg)$/i.test(href))
+        .map(href => decodeURIComponent(href));
+
+    // Remove duplicates using Set
+    mediaFiles = Array.from(new Set(hrefs));
+
+    console.log('Unique media files:', mediaFiles);
+
+    // Find index of current image
+    const clickedFileName = fileName.split('/').pop().toLowerCase();
+    currentMediaIndex = mediaFiles.findIndex(f => {
+        const decodedName = decodeURIComponent(f).split('/').pop().toLowerCase();
+        return decodedName === fileName.toLowerCase();
+    });
+
+    console.log("Matched index:", currentMediaIndex);
+
     if (["png", "jpg", "jpeg", "gif", "bmp", "webp"].includes(ext)) {
-        // Get all image links on the page
-        const links = Array.from(document.querySelectorAll('.file-table td a'));
-        const hrefs = links
-            .map(link => link.getAttribute('href'))
-            .filter(href => href && /\.(png|jpe?g|gif|bmp|webp)$/i.test(href));
-
-        // Remove duplicates using Set
-        imageFiles = Array.from(new Set(hrefs));
-
-        console.log('Unique image files:', imageFiles);
-
-        // Find index of current image
-        const clickedFileName = fileName.split('/').pop().toLowerCase();
-        currentImageIndex = imageFiles.findIndex(f => f.split('/').pop().toLowerCase() === clickedFileName);
-
-        console.log("Matched index:", currentImageIndex);
-
-        // Show image
-        document.getElementById("previewFileName").textContent = fileName;
         content = `<img src="${fileUrl}" alt="Image Preview" style="max-width: 100%; max-height: 80vh;" />`;
     } else if (["mp4", "webm", "ogg"].includes(ext)) {
         content = `<video controls style="max-width: 100%; max-height: 80vh;"><source src="${fileUrl}" type="video/${ext}">Your browser does not support the video tag.</video>`;
@@ -404,39 +408,61 @@ function previewFile(fileName) {
     document.getElementById("previewModal").style.display = "flex";
 }
 
-function showPrevImage() {
-    if (imageFiles.length === 0) return;
+function showPrevMedia() {
+    if (mediaFiles.length === 0) return;
 
-    currentImageIndex = (currentImageIndex - 1 + imageFiles.length) % imageFiles.length;
-    const newPath = imageFiles[currentImageIndex];
+    currentMediaIndex = (currentMediaIndex - 1 + mediaFiles.length) % mediaFiles.length;
+    const newPath = mediaFiles[currentMediaIndex];
     const fileName = newPath.split('/').pop();
+    const ext = fileName.split('.').pop().toLowerCase();
 
     document.getElementById("previewFileName").textContent = fileName;
-    document.getElementById("previewContent").innerHTML = `
-        <img src="${newPath}" alt="Image Preview" style="max-width: 100%; max-height: 80vh;" />
-    `;
+
+    if (["png", "jpg", "jpeg", "gif", "bmp", "webp"].includes(ext)) {
+        document.getElementById("previewContent").innerHTML = `<img src="${newPath}" style="max-width:100%; max-height:80vh;" />`;
+    } else if (["mp4", "webm", "ogg"].includes(ext)) {
+        document.getElementById("previewContent").innerHTML = `
+            <video controls style="max-width:100%; max-height:80vh;">
+                <source src="${newPath}" type="video/${ext}">
+                Your browser does not support the video tag.
+            </video>
+        `;
+    } else {
+        document.getElementById("previewContent").innerHTML = `<p>Unsupported media type.</p>`;
+    }
 }
 
-function showNextImage() {
-    if (imageFiles.length === 0) return;
+function showNextMedia() {
+    if (mediaFiles.length === 0) return;
 
-    currentImageIndex = (currentImageIndex + 1) % imageFiles.length;
-    const newPath = imageFiles[currentImageIndex];
+    currentMediaIndex = (currentMediaIndex + 1) % mediaFiles.length;
+    const newPath = mediaFiles[currentMediaIndex];
     const fileName = newPath.split('/').pop();
+    const ext = fileName.split('.').pop().toLowerCase();
 
     document.getElementById("previewFileName").textContent = fileName;
-    document.getElementById("previewContent").innerHTML = `
-        <img src="${newPath}" alt="Image Preview" style="max-width: 100%; max-height: 80vh;" />
-    `;
+
+    if (["png", "jpg", "jpeg", "gif", "bmp", "webp"].includes(ext)) {
+        document.getElementById("previewContent").innerHTML = `<img src="${newPath}" style="max-width:100%; max-height:80vh;" />`;
+    } else if (["mp4", "webm", "ogg"].includes(ext)) {
+        document.getElementById("previewContent").innerHTML = `
+            <video controls style="max-width:100%; max-height:80vh;">
+                <source src="${newPath}" type="video/${ext}">
+                Your browser does not support the video tag.
+            </video>
+        `;
+    } else {
+        document.getElementById("previewContent").innerHTML = `<p>Unsupported media type.</p>`;
+    }
 }
 
 document.addEventListener('keydown', (e) => {
     const modal = document.getElementById('previewModal');
     if (modal.style.display === 'flex') {
         if (e.key === 'ArrowRight') {
-            showNextImage();
+            showNextMedia();
         } else if (e.key === 'ArrowLeft') {
-            showPrevImage();
+            showPrevMedia();
         } else if (e.key === 'Escape') {
             closeModal();
         }

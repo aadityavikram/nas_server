@@ -19,16 +19,22 @@ Network Attached Storage on a Python server running in Ubuntu
 
 ## Steps
 
+### Only initial setup and first access method is needed
+
 - Initial setup on Ubuntu
   - Create a directory /nas/storage/files on Ubuntu
   - This will serve as root directory for the NAS
   - Give permission to current user to read and write from it with command sudo chmod 0755 /nas/storage/files
   - Transfer server.py, template.html, style.css and main.js to the above directory
 
-- To access server on Windows through GUI
-  - Run python app.py
-  - Open http://localhost:5000 in browser to open Launcher
-  - Enter credentials and wait for http://localhost:8888 to open
+- To access server on Windows through GUI (easy method)
+  - Run python3 app.py on Ubuntu
+  - Open http://<ubuntu_ip>:5000 in browser to open Launcher
+  - Enter credentials and wait for http://<ubuntu_ip>:8888 to open
+  - Now the app is running on server and can be accessed from any device on same Wi-Fi at http://<ubuntu_ip>:8888
+  - python3 app.py can be quit
+
+### Rest of the methods of access are not needed
 
 - To access server on any device on same Wi-Fi after access is established on above system
   - Get IPV4 of above system. If it is Windows, type ipconfig in terminal

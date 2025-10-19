@@ -82,6 +82,8 @@ class FileHandler(SimpleHTTPRequestHandler):
         query_params = parse_qs(parsed_url.query)
         search_query = query_params.get("q", [""])[0].strip().lower()
 
+        back_to_root_html = '<div class="back-to-root"><a href="/">Back to root</a></div>' if search_query != '' else ''
+
         file_list.sort()
         items = ""
         
@@ -181,6 +183,7 @@ class FileHandler(SimpleHTTPRequestHandler):
         html = html.replace("{{currentFolderPath}}", currentFolderPath)
         html = html.replace("{{file_table}}", items)
         html = html.replace("{{query}}", search_query)
+        html = html.replace("{{backToRootHTML}}", back_to_root_html)
 
         encoded = html.encode("utf-8", "surrogateescape")
         f = BytesIO()

@@ -185,6 +185,25 @@ body.scrolled .header-bar {
     background-color: #00cc00;
 }
 
+.back-to-root {
+    margin: 10px 0;
+}
+
+.back-to-root a {
+    display: inline-block;
+    padding: 6px 12px;
+    color: #00ff00;
+    font-size: 1em;
+    text-decoration: none;
+    font-family: 'Share Tech Mono', monospace;
+    transition: background-color 0.3s ease;
+}
+
+.back-to-root a:hover {
+    text-shadow: 0 0 5px #00ff00;
+    text-decoration: underline;
+}
+
 /* === MAIN CONTENT === */
 main {
     flex: 1;

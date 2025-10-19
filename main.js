@@ -615,3 +615,62 @@ function showDetails(name) {
 function closeDetailModal() {
     document.getElementById("detailModal").style.display = "none";
 }
+
+function openGallery() {
+    const mediaExtensions = /\.(png|jpe?g|gif|bmp|webp|mp4|webm|ogg)$/i;
+    const links = Array.from(document.querySelectorAll('.file-table td a'));
+    const mediaLinksList = links
+        .map(link => link.getAttribute('href'))
+        .filter(href => href && mediaExtensions.test(href))
+        .map(href => decodeURIComponent(href));
+
+    // Remove duplicates using Set
+    mediaLinks = Array.from(new Set(mediaLinksList));
+
+    // Dynamically set number of columns
+    const modalContent = document.querySelector(".gallery-modal-content");
+    const columnCount = Math.min(mediaLinks.length, 4);
+    modalContent.style.setProperty('--columns', columnCount);
+    const thumbMaxSize = columnCount < 4 ? 480 : 240;
+    galleryModal.style.setProperty('--thumb-size', `${thumbMaxSize}px`);
+
+    const gallery = document.getElementById("galleryContent");
+    gallery.innerHTML = "";
+
+    if (mediaLinks.length === 0) {
+        gallery.innerHTML = "<p>No images or videos found in this folder.</p>";
+        return;
+    }
+
+    mediaLinks.forEach(href => {
+        const fileName = href.split("/").pop();
+        const ext = fileName.split(".").pop().toLowerCase();
+        let thumb;
+
+        if (["png", "jpg", "jpeg", "gif", "bmp", "webp"].includes(ext)) {
+            thumb = document.createElement("img");
+            thumb.src = href;
+        } else if (["mp4", "webm", "ogg"].includes(ext)) {
+            thumb = document.createElement("video");
+            thumb.src = href;
+            thumb.muted = true;
+            thumb.loop = true;
+            thumb.playsInline = true;
+            thumb.autoplay = true;
+        }
+
+        thumb.title = fileName;
+        thumb.addEventListener("click", () => {
+            const fileUrl = encodeURI(`/${fileName}`);
+            window.open(fileUrl, '_blank');
+        });
+
+        gallery.appendChild(thumb);
+    });
+
+    document.getElementById("galleryModal").style.display = "flex";
+}
+
+function closeGallery() {
+    document.getElementById("galleryModal").style.display = "none";
+}

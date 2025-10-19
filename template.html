@@ -12,6 +12,7 @@
 		<h1>{{currentFolderName}}</h1>
 
         <div class="right-controls">
+            <button class="gallery-btn" onclick="openGallery()">Gallery</button>
 
             <div class="dropdown-main">
                 <button class="dots-btn-main" onclick="toggleDropdownMain(event)">Options</button>
@@ -94,6 +95,14 @@
                 <p><strong>Modified:</strong> <span id="detailModified"></span></p>
                 <p><strong>Path:</strong> <span id="detailPath"></span></p>
             </div>
+        </div>
+    </div>
+
+    <div id="galleryModal" class="modal" style="display: none;">
+        <div class="modal-content gallery-modal-content">
+            <button class="close-btn-modal" onclick="closeGallery()">X</button>
+            <h2>Media Gallery</h2>
+            <div id="galleryContent" class="gallery-grid"></div>
         </div>
     </div>
 

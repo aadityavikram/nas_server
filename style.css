@@ -94,6 +94,7 @@ body.scrolled .header-bar {
     align-items: center;
     gap: 15px;
     margin-left: auto;
+    flex-wrap: nowrap;
 }
 
 .dropdown-main {
@@ -156,7 +157,7 @@ body.scrolled .header-bar {
 .search-form {
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
 }
 
 .search-form input {
@@ -319,7 +320,7 @@ main {
     background-color: #003300;
 }
 
-.preview-btn {
+.gallery-btn {
     background: transparent;
     border: none;
 	font-size: 1em;
@@ -328,10 +329,9 @@ main {
     padding: 8px 10px;
     text-align: left;
     cursor: pointer;
-    font-family: 'Share Tech Mono', monospace;
 }
 
-.preview-btn:hover {
+.gallery-btn:hover {
     background-color: #003300;
 }
 
@@ -518,6 +518,52 @@ main {
     margin: 5px 0;
 }
 
+/* === GALLERY MODAL === */
+.gallery-modal-content {
+    --columns: 4; /* being set in main js */
+    max-width: calc((240px * var(--columns))); /* dynamic width */
+    width: 100%;
+    overflow-y: auto;
+    border: 1px solid #00ff00;
+    background-color: black;
+    color: #00ff00;
+    font-family: 'Share Tech Mono', monospace;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+    position: relative;
+    margin: auto;
+    box-sizing: border-box;
+}
+
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--columns), 1fr);
+    gap: 16px;
+    justify-items: center; /* center thumbnails in each cell */
+    margin-top: 15px;
+}
+
+.gallery-grid img,
+.gallery-grid video {
+    width: 100%;      /* fill grid column */
+    height: auto;
+    max-height: var(--thumb-size, 240px); /* default to 240px */
+    max-width: var(--thumb-size, 240px);  /* default to 240px */
+    object-fit: cover;
+    border: 1px solid #00ff00;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+    max-width: 240px; /* max width per image */
+}
+
+.gallery-grid img:hover,
+.gallery-grid video:hover {
+    transform: scale(1.05);
+    border-color: #00cc00;
+}
+
 /* === FOOTER === */
 footer {
     text-align: center;
@@ -568,5 +614,19 @@ footer {
     .search-form input {
         width: 100%;
         margin-top: 5px;
+    }
+
+    .gallery-modal-content {
+        max-width: 90%;
+    }
+
+    .gallery-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+
+    .gallery-grid img,
+    .gallery-grid video {
+        max-width: 100%;
+        max-height: 150px;
     }
 }

@@ -67,7 +67,7 @@ class FileHandler(SimpleHTTPRequestHandler):
 
     def list_directory(self, path):
         try:
-            with open(os.path.join(DIRECTORY, "template.html"), "r", encoding="utf-8") as f:
+            with open(os.path.join("/nas/storage/files", "template.html"), "r", encoding="utf-8") as f:
                 template = f.read()
         except FileNotFoundError:
             self.send_error(500, "Missing template.html")

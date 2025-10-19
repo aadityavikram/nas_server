@@ -82,12 +82,22 @@ class FileHandler(SimpleHTTPRequestHandler):
         query_params = parse_qs(parsed_url.query)
         search_query = query_params.get("q", [""])[0].strip().lower()
 
-        back_to_root_html = '<div class="back-to-root"><a href="/">Back to root</a></div>' if search_query != '' else ''
-
         file_list.sort()
         items = ""
         
         rel_path = os.path.relpath(path, DIRECTORY)
+
+        # Normalize rel_path for URL
+        url_rel_path = rel_path.replace(os.sep, '/')
+
+        # If we're already at root, keep it "/"
+        back_link = f'/{url_rel_path}' if rel_path != "." else '/'
+
+        back_to_root_html = (
+            f'<div class="back-to-root"><a href="{back_link}">Back to current directory</a></div>'
+            if search_query != ''
+            else ''
+        )
         
         items += '''
             <table class="file-table">

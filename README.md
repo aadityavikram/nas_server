@@ -27,18 +27,18 @@ Network Attached Storage on a Python server running in Ubuntu
 - To access server on Windows through GUI
   - Run python app.py
   - Open http://localhost:5000 in browser to open Launcher
-  - Enter credentials and wait for http://localhost:9090 to open
+  - Enter credentials and wait for http://localhost:8888 to open
 
 - To access server on any device on same Wi-Fi after access is established on above system
   - Get IPV4 of above system. If it is Windows, type ipconfig in terminal
   - Let it be device_ip
-  - In browser, http://<device_ip>:9090
+  - In browser, http://<device_ip>:8888
 
 - To access server on Windows through terminal
   - Open 1st terminal window and run ssh <ubuntu_user>@<ubuntu_ip>, then run python3 /nas/storage/files/server.py
-  - Open 2nd terminal window and run ssh -L 9090:localhost:8888 <ubuntu_user>@<ubuntu_ip> to create a tunnel to the running server
+  - Open 2nd terminal window and run ssh -L 8888:localhost:8888 <ubuntu_user>@<ubuntu_ip> to create a tunnel to the running server
   - Or just run access_nas.bat file and skip above 2 steps
-  - Go to browser and enter http://localhost:9090
+  - Go to browser and enter http://localhost:8888
   - After closing server that was started using the bat file, it is needed to kill the python process
   - Find PID of the process by running sudo netstat -tulnp | grep :8888
   - sudo kill -9 pid
@@ -48,9 +48,9 @@ Network Attached Storage on a Python server running in Ubuntu
   - Install Termux from Play Store
   - Run command, pkg install socat
   - Open 1st terminal window and run ssh <ubuntu_user>@<ubuntu_ip>, then run python3 /nas/storage/files/server.py
-  - Open 2nd terminal window and run ssh -L 9090:localhost:8888 <ubuntu_user>@<ubuntu_ip> to create a tunnel to the running server
-  - Open 3rd terminal window and run socat TCP-LISTEN:9090,bind=<android_ip>,fork TCP:127.0.0.1:9090
-  - Go to browser and enter http://<android_ip>:9090
+  - Open 2nd terminal window and run ssh -L 8888:localhost:8888 <ubuntu_user>@<ubuntu_ip> to create a tunnel to the running server
+  - Open 3rd terminal window and run socat TCP-LISTEN:8888,bind=<android_ip>,fork TCP:127.0.0.1:8888
+  - Go to browser and enter http://<android_ip>:8888
   - To find Android IP, go to Settings > Connections > Wi-Fi Name > Scroll down to find IP Address
   - Type exit to close open terminals
 

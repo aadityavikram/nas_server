@@ -15,13 +15,13 @@
 8. IP Address will change each time server restarts
 9. To check current IP address, hostname -I. This command will give 2 IPs, one will be the local IPV4 address (required for SSH), other will be of docker image. Usually one with 192.168.x.x will be the correct IP
 10. Run access_nas.bat file from Windows desktop
-	a. This will create a server at address http://localhost:9090. Access the address in browser.
+	a. This will create a server at address http://localhost:8888. Access the address in browser.
 	b. It will point to /nas/storage/files. Can change this location in bat file
 11. After closing NAS Server, find process running on port 8888 and kill it (see point 17)
 12. Can also run server on Windows desktop with the following steps: -
 	a. Open 1st terminal window then run, ssh <user>@<ip>, then run python3 /nas/storage/files/server.py
-	b. Open 2nd terminal window then run, ssh -L 9090:localhost:8888 <user>@<ip>
-	c. Go to browser and go to http://localhost:9090
+	b. Open 2nd terminal window then run, ssh -L 8888:localhost:8888 <user>@<ip>
+	c. Go to browser and go to http://localhost:8888
 	d. In this method, there is no need to kill the process
 13. NAS folder path: /nas/storage
 14. To transfer file from a device to server, scp <path_of_file_on_device> <user>@<ip>:/nas/storage
@@ -57,14 +57,14 @@
 	a. Install Termux from Play Store
 	b. Run command, pkg install socat
 	c. Open 1st terminal window then run, ssh <user>@<ip>, then run python3 /nas/storage/files/server.py
-	d. Open 2nd terminal window then run, ssh -L 9090:localhost:8888 <user>@<ip>
-	e. Open 3rd terminal window then run, socat TCP-LISTEN:9090,bind=<android_ip>,fork TCP:127.0.0.1:9090
-	f. Go to browser and go to http://<android_ip>:9090
-	g. To find Android IP, go to Settings > Connections > Wifi Name > Scroll down to find IP Address
+	d. Open 2nd terminal window then run, ssh -L 8888:localhost:8888 <user>@<ip>
+	e. Open 3rd terminal window then run, socat TCP-LISTEN:8888,bind=<android_ip>,fork TCP:127.0.0.1:8888
+	f. Go to browser and go to http://<android_ip>:8888
+	g. To find Android IP, go to Settings > Connections > Wi-Fi Name > Scroll down to find IP Address
 	h. Type exit to close open terminals
 24. Simpler process to access server on all devices connected to same Wi-Fi
 	a. Download /nas/storage/files/app.py to a system where server has to be accessed
 	b. python app.py
-	c. In browser, http://localhost:5000 then enter credentials and wait for localhost:9090 to be opened
+	c. In browser, http://localhost:5000 then enter credentials and wait for localhost:8888 to be opened
 	d. Find IPV4 of this device. If it is Windows, run ipconfig. Let it be device_ip
-	e. On any other device on same Wi-Fi in browser, http://<device_ip>:9090
+	e. On any other device on same Wi-Fi in browser, http://<device_ip>:8888

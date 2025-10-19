@@ -72,22 +72,28 @@ def index():
         ip = request.form["ip"]
         password = request.form["password"]
 
+        delay_seconds = 1
+
         threading.Thread(target=start_server, args=(username, ip, password), daemon=True).start()
         threading.Thread(target=port_forward, args=(username, ip, password), daemon=True).start()
-        threading.Thread(target=launch_browser_after_delay, args=(1,), daemon=True).start()
 
-        return """
-        <html>
-          <head>
-            <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
-          </head>
-          <body style="background-color:black;">
-            <h2 style="color:#00ff00; font-family: 'Share Tech Mono', monospace;">
-              Launching NAS... You can close this tab now.
-            </h2>
-          </body>
-        </html>
-        """
+        return f"""
+           <html>
+             <head>
+               <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+               <script>
+                 setTimeout(function() {{
+                   window.location.href = "http://localhost:8888";
+                 }}, {delay_seconds * 1000});
+               </script>
+             </head>
+             <body style="background-color:black;">
+               <h2 style="color:#00ff00; font-family: 'Share Tech Mono', monospace;">
+                 Launching NAS... Redirecting you in {delay_seconds} second{'s' if delay_seconds != 1 else ''}.
+               </h2>
+             </body>
+           </html>
+           """
 
     return render_template_string(HTML_FORM)
 
@@ -116,9 +122,9 @@ def port_forward(username, ip, password):
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         client.connect(ip, username=username, password=password)
 
-        # Local port 9090 forwarded to remote localhost:8888
+        # Local port 8888 forwarded to remote localhost:8888
         transport = client.get_transport()
-        local_port = 9090
+        local_port = 8888
         remote_host = 'localhost'
         remote_port = 8888
 
@@ -181,11 +187,6 @@ def port_forward(username, ip, password):
 
     except Exception as e:
         print("Failed to setup port forwarding:", e)
-
-
-def launch_browser_after_delay(delay_seconds):
-    time.sleep(delay_seconds)
-    webbrowser.open("http://localhost:9090")
 
 
 if __name__ == "__main__":

@@ -9,7 +9,7 @@ read -p "Enter Android IP address: " ANDROID_IP
 
 # Configuration
 REMOTE_FILE_DIR="/nas/storage/files"
-LOCAL_PORT=9090
+LOCAL_PORT=8888
 REMOTE_PORT=8888
 
 # Start remote HTTP server over SSH
@@ -26,9 +26,9 @@ echo "Creating SSH tunnel (localhost:${LOCAL_PORT} -> ${UBUNTU_IP}:${REMOTE_PORT
 ssh -L ${LOCAL_PORT}:localhost:${REMOTE_PORT} "${UBUNTU_USER}@${UBUNTU_IP}" &
 TUNNEL_PID=$!
 
-# Start socat to forward Android IP on port 9090 to localhost:9090
+# Start socat to forward Android IP on port 8888 to localhost:8888
 echo
-echo "Starting socat to forward ${ANDROID_IP}:9090 to localhost:9090..."
+echo "Starting socat to forward ${ANDROID_IP}:8888 to localhost:8888..."
 socat TCP-LISTEN:${LOCAL_PORT},bind=${ANDROID_IP},fork TCP:127.0.0.1:${LOCAL_PORT} &
 SOCAT_PID=$!
 

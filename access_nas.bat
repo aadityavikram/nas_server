@@ -7,7 +7,7 @@ set /p UBUNTU_IP=Enter Ubuntu IP address:
 
 :: ===== USER CONFIGURATION =====
 set "REMOTE_FILE_DIR=/nas/storage/files"
-set "LOCAL_PORT=9090"
+set "LOCAL_PORT=8888"
 set "REMOTE_PORT=8888"
 :: ==============================
 

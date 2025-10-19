@@ -15,6 +15,7 @@ Network Attached Storage on a Python server running in Ubuntu
 - Delete file and folder
 - View file details
 - Preview Files with navigation and thumbnail preview for images and videos
+- Gallery functionality for current folder
 - Range request for video display to enable seek forward or jump to a timeline
 
 ## Steps

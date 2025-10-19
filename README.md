@@ -97,6 +97,10 @@ Network Attached Storage on a Python server running in Ubuntu
 
 ![Delete_Functionality](assets/Delete_Functionality.png)
 
+## Gallery Functionality in current directory
+
+![Gallery_Functionality](assets/Gallery_Functionality.png)
+
 ## Preview Functionality (Video) with Navigation and Preview
 
 ![Preview_Functionality_Video](assets/Preview_Functionality_Video.png)

@@ -13,6 +13,7 @@ Network Attached Storage on a Python server running in Ubuntu
 - Download and delete file
 - Download folder as zip and delete
 - Delete file and folder
+- View file details
 - Preview Files with navigation and thumbnail preview for images and videos
 - Range request for video display to enable seek forward or jump to a timeline
 
@@ -77,6 +78,10 @@ Network Attached Storage on a Python server running in Ubuntu
 ## More options on a File
 
 ![File_More_Options](assets/File_More_Options.png)
+
+## File Details
+
+![File_Details](assets/File_Details.png)
 
 ## More options on a Folder
 

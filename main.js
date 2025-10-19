@@ -5,6 +5,7 @@ let folderUploadXHRs = [];
 let folderUploadCancelled = false;
 let mediaFiles = [];
 let currentMediaIndex = -1;
+let loginPageIp = '192.168.1.44'
 
 function triggerFileUpload() {
     const input = document.getElementById('fileInput');
@@ -674,3 +675,17 @@ function openGallery() {
 function closeGallery() {
     document.getElementById("galleryModal").style.display = "none";
 }
+
+document.getElementById("logout-btn").addEventListener("click", async () => {
+    try {
+        const confirmLogout = confirm("Are you sure you want to logout?");
+        if (!confirmLogout) return;
+
+        // Call backend logout route
+        fetch("/logout", { method: "POST" });
+        window.location.href = `http://${loginPageIp}:5000`;
+    } catch (err) {
+        console.error("Logout error:", err);
+        alert("Logout failed: " + err.message);
+    }
+});

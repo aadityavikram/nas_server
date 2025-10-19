@@ -13,11 +13,69 @@ import tempfile
 from datetime import datetime
 import json
 
+import platform
+import subprocess
+import re
+import signal
+import time
+import threading
+
 # Directory to serve
 DIRECTORY = "/nas/storage/files"
 
 # Files you want to hide from the listing
 HIDDEN_FILES = {"app.py", "server.py", "template.html", "style.css", "main.js"}
+
+PORT = 8888
+
+# --- Add helper functions for process‐killing ---
+def kill_process_on_port(port):
+    system = platform.system()
+
+    if system == "Windows":
+        # Get PID listening on port
+        try:
+            result = subprocess.check_output(
+                f"netstat -ano | findstr :{port}", shell=True, text=True)
+            lines = result.strip().split('\n')
+            pids = set()
+            for line in lines:
+                parts = line.strip().split()
+                if parts[-1].isdigit():
+                    pids.add(parts[-1])
+            if not pids:
+                print(f"No process found on port {port}")
+                return
+            for pid in pids:
+                print(f"Killing process {pid} on port {port}")
+                subprocess.run(f"taskkill /PID {pid} /F", shell=True)
+        except subprocess.CalledProcessError:
+            print(f"No process found on port {port}")
+
+    else:  # Linux/macOS
+        try:
+            # Run netstat to find processes listening on the port
+            result = subprocess.check_output(f"netstat -nlp | grep :{port}", shell=True, universal_newlines=True)
+
+            # Each line looks like:
+            # tcp        0      0 0.0.0.0:8888            0.0.0.0:*               LISTEN      1234/python3
+            # Extract PIDs from output lines
+            pids = set()
+            for line in result.strip().split('\n'):
+                match = re.search(r'LISTEN\s+(\d+)/', line)
+                if match:
+                    pids.add(match.group(1))
+
+            if not pids:
+                print(f"No process found on port {port}")
+                return
+
+            for pid in pids:
+                print(f"Killing process {pid} on port {port}")
+                subprocess.run(f"kill -9 {pid}", shell=True)
+
+        except subprocess.CalledProcessError:
+            print(f"No process found on port {port}")
 
 class FileHandler(SimpleHTTPRequestHandler):
 
@@ -317,7 +375,11 @@ class FileHandler(SimpleHTTPRequestHandler):
                 self.send_response(303)  # See Other
                 self.send_header('Location', '/')
                 self.end_headers()
-        
+        elif parsed_url.path == "/logout":
+            threading.Thread(target=shutdown_and_kill).start()
+            self.send_response(303)
+            self.end_headers()
+            return
         else:
             self.send_response(404)
             self.end_headers()
@@ -503,7 +565,15 @@ class FileHandler(SimpleHTTPRequestHandler):
             except Exception as e:
                 print("Unexpected error in do_GET():", e)
 
-            
+def shutdown_and_kill():
+    # Wait a moment so response is sent before killing
+    time.sleep(1)
+
+    # Kill this server's process or process on port 8888
+    # Assuming current process:
+    print(f'Process ID: {os.getpid}')
+    os.kill(os.getpid(), signal.SIGTERM)
+
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
     daemon_threads = True  # threads exit when main thread exits
 

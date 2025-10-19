@@ -186,8 +186,18 @@ class FileHandler(SimpleHTTPRequestHandler):
         '''
 
 
-        currentFolderName = rel_path.split("/")[-1] if rel_path != "." else "Home"
-        currentFolderPath = f'<div class="currentFolder">Currently in: Home/{rel_path}</div>' if rel_path != "." else f'<div class="currentFolder">Currently in: Home</div>'
+        # Build breadcrumb navigation
+        parts = [] if rel_path == "." else rel_path.split(os.sep)
+        breadcrumb_html = '<a href="/">Home</a>'
+        cumulative_path = ""
+
+        for i, part in enumerate(parts):
+            cumulative_path = os.path.join(cumulative_path, part)
+            url_path = "/" + cumulative_path.replace(os.sep, "/")
+            breadcrumb_html += f'/<a href="{quote(url_path)}">{part}</a>'
+
+        currentFolderName = parts[-1] if parts else "Home"
+        currentFolderPath = f'<div class="currentFolder">Currently in: {breadcrumb_html}</div>'
         
         html = template.replace("{{currentFolderName}}", currentFolderName)
         html = html.replace("{{currentFolderPath}}", currentFolderPath)

@@ -11,6 +11,7 @@ import shutil
 import zipfile
 import tempfile
 from datetime import datetime
+import json
 
 # Directory to serve
 DIRECTORY = "/nas/storage/files"
@@ -167,6 +168,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                             <a href="{quote(name)}" download class="dropdown-link">Download</a>
                             <button class="preview-btn" onclick="previewFile('{name}')">Preview</button>
                             <button class="delete-btn" onclick="deleteFile('{name}', false)">Delete</button>
+                            <button class="detail-btn" onclick="showDetails('{name}')">Details</button>
                         </div>
                     </div>
                 '''
@@ -381,10 +383,43 @@ class FileHandler(SimpleHTTPRequestHandler):
         else:
             self.send_response(404)
             self.end_headers()
+
+    def handle_details(self, parsed):
+        params = parse_qs(parsed.query)
+        file_path = params.get("path", [""])[0]
+        abs_path = os.path.normpath(os.path.join(DIRECTORY, file_path.lstrip("/")))
+
+        if not abs_path.startswith(DIRECTORY) or not os.path.exists(abs_path):
+            self.send_error(404, "Not found")
+            return
+
+        stat = os.stat(abs_path)
+        file_type = "folder" if os.path.isdir(abs_path) else "file"
+        size = stat.st_size if file_type == "file" else "-"
+        created = datetime.fromtimestamp(stat.st_ctime).strftime("%Y-%m-%d %H:%M:%S")
+        modified = datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M:%S")
+
+        data = {
+            "name": os.path.basename(abs_path),
+            "type": file_type,
+            "size": f"{size} bytes" if size != "-" else "-",
+            "created": created,
+            "modified": modified,
+            "path": file_path
+        }
+
+        json_str = json.dumps(data)
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(json_str)))
+        self.end_headers()
+        self.wfile.write(json_str.encode("utf-8"))
             
     def do_GET(self):
         parsed_url = urlparse(self.path)
-        if parsed_url.path == "/download-zip":
+        if parsed_url.path == "/details":
+            return self.handle_details(parsed_url)
+        elif parsed_url.path == "/download-zip":
             query = parse_qs(parsed_url.query)
             folder = query.get("folder", [None])[0]
 

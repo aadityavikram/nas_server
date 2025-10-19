@@ -82,6 +82,21 @@
         </div>
 	</div>
 
+    <div id="detailModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close-btn-modal" onclick="closeDetailModal()">X</span>
+            <h2 style="text-align:center; margin-top: 0;">Details</h2>
+            <div style="padding: 10px;">
+                <p><strong>Name:</strong> <span id="detailName"></span></p>
+                <p><strong>Type:</strong> <span id="detailType"></span></p>
+                <p><strong>Size:</strong> <span id="detailSize"></span></p>
+                <p><strong>Created:</strong> <span id="detailCreated"></span></p>
+                <p><strong>Modified:</strong> <span id="detailModified"></span></p>
+                <p><strong>Path:</strong> <span id="detailPath"></span></p>
+            </div>
+        </div>
+    </div>
+
     <!-- Add shadow to header on scroll -->
     <script>
         window.addEventListener("scroll", () => {

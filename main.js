@@ -586,3 +586,32 @@ document.getElementById('previewContent').addEventListener('click', (e) => {
 
     window.open(fullPath, '_blank');
 });
+
+function showDetails(name) {
+    let fullPath = currentPath;
+    if (!fullPath.endsWith("/")) fullPath += "/";
+    fullPath += name;
+
+    fetch(`/details?path=${fullPath}`)
+        .then(res => {
+            if (!res.ok) throw new Error("Failed to fetch details");
+            return res.json();
+        })
+        .then(data => {
+            document.getElementById("detailName").textContent = data.name;
+            document.getElementById("detailType").textContent = data.type;
+            document.getElementById("detailSize").textContent = data.size;
+            document.getElementById("detailCreated").textContent = data.created;
+            document.getElementById("detailModified").textContent = data.modified;
+            document.getElementById("detailPath").textContent = data.path;
+            document.getElementById("detailModal").style.display = "flex";
+        })
+        .catch(err => {
+            alert(err.message);
+            console.error(err);
+        });
+}
+
+function closeDetailModal() {
+    document.getElementById("detailModal").style.display = "none";
+}

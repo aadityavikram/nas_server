@@ -17,6 +17,7 @@ Network Attached Storage on a Python server running in Ubuntu
 - Preview Files with navigation and thumbnail preview for images and videos
 - Gallery functionality for current folder
 - Range request for video display to enable seek forward or jump to a timeline
+- Logout feature that kills server process and redirects to login page
 
 ## Steps
 
@@ -118,6 +119,10 @@ Network Attached Storage on a Python server running in Ubuntu
 
 ![Preview_Functionality_Pdf](assets/Preview_Functionality_Pdf.png)
 
+## Logout functionality
+
+![Logout_Functionality](assets/Logout_Functionality.png)
+
 ## Android file access
 
 ![Android_Access](assets/Android_Access.jpg)
@@ -125,3 +130,4 @@ Network Attached Storage on a Python server running in Ubuntu
 ## Android file viewing
 
 ![Android_File_Viewing](assets/Android_File_Viewing.jpg)
+

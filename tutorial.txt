@@ -63,8 +63,8 @@
 	g. To find Android IP, go to Settings > Connections > Wi-Fi Name > Scroll down to find IP Address
 	h. Type exit to close open terminals
 24. Simpler process to access server on all devices connected to same Wi-Fi
-	a. Download /nas/storage/files/app.py to a system where server has to be accessed
-	b. python app.py
-	c. In browser, http://localhost:5000 then enter credentials and wait for localhost:8888 to be opened
-	d. Find IPV4 of this device. If it is Windows, run ipconfig. Let it be device_ip
-	e. On any other device on same Wi-Fi in browser, http://<device_ip>:8888
+	a. Run python3 /nas/storage/files/app.py on server
+	b. On 1st device, access http://<server_ip>:5000 and enter credentials
+	c. It will redirect to http://<server_ip>:8888 and open server in browser
+	d. For rest of the devices, just visit http://<server_ip>:8888 in browser
+	e. Session will be maintained till server device is on. After that credentials need to be entered again at http://<server_ip>:5000

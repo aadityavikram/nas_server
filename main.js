@@ -5,7 +5,8 @@ let folderUploadXHRs = [];
 let folderUploadCancelled = false;
 let mediaFiles = [];
 let currentMediaIndex = -1;
-let loginPageIp = '192.168.1.44'
+const ip = window.location.hostname;
+const port = 5000;
 
 function triggerFileUpload() {
     const input = document.getElementById('fileInput');
@@ -683,7 +684,7 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
 
         // Call backend logout route
         fetch("/logout", { method: "POST" });
-        window.location.href = `http://${loginPageIp}:5000`;
+        window.location.href = `http://${ip}:${port}`;
     } catch (err) {
         console.error("Logout error:", err);
         alert("Logout failed: " + err.message);

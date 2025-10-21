@@ -12,6 +12,7 @@ Network Attached Storage on a Python server running in Ubuntu
 - Progress bar on upload file
 - Download and delete file
 - Download folder as zip and delete
+- Rename file and folder
 - Delete file and folder
 - View file details
 - Preview Files with navigation and thumbnail preview for images and videos
@@ -21,47 +22,31 @@ Network Attached Storage on a Python server running in Ubuntu
 
 ## Steps
 
-### Only initial setup and first access method is needed
-
 - Initial setup on Ubuntu
   - Create a directory /nas/storage/files on Ubuntu
   - This will serve as root directory for the NAS
   - Give permission to current user to read and write from it with command sudo chmod 0755 /nas/storage/files
-  - Transfer server.py, template.html, style.css and main.js to the above directory
+  - Transfer app.py, server.py, template.html, style.css and main.js to the above directory
 
-- To access server on Windows through GUI (easy method)
-  - Run python3 app.py on Ubuntu
+- To access server on Windows through login page
+  - Run python3 /nas/storage/files/app.py on Ubuntu
   - Open http://<ubuntu_ip>:5000 in browser to open Launcher
   - Enter credentials and wait for http://<ubuntu_ip>:8888 to open
   - Now the app is running on server and can be accessed from any device on same Wi-Fi at http://<ubuntu_ip>:8888
-  - python3 app.py can be quit
+  - To logout and kill process, click on Logout button. It will redirect to login page and kill process on 8888
+  - app.py should be running in a terminal window in Ubuntu always
+  - To get Ubuntu IP, in terminal type ip addr and search for wlan0. There will be an inet with IP in the form 192.168.x.x
 
-### Rest of the methods of access are not needed
+- To access server without login
+  - Run python3 /nas/storage/files/server.py
+  - Open http://<ubuntu_ip>:8888 in browser to access the server without entering credentials
+  - server.py should be running in a terminal window in Ubuntu always
+  - To kill process in Ubuntu
+    - sudo netstat | -tulnp grep 8888 to get process ID
+    - sudo kill -9 <process_id>
+  - To get Ubuntu IP, in terminal type ip addr and search for wlan0. There will be an inet with IP in the form 192.168.x.x
 
-- To access server on any device on same Wi-Fi after access is established on above system
-  - Get IPV4 of above system. If it is Windows, type ipconfig in terminal
-  - Let it be device_ip
-  - In browser, http://<device_ip>:8888
-
-- To access server on Windows through terminal
-  - Open 1st terminal window and run ssh <ubuntu_user>@<ubuntu_ip>, then run python3 /nas/storage/files/server.py
-  - Open 2nd terminal window and run ssh -L 8888:localhost:8888 <ubuntu_user>@<ubuntu_ip> to create a tunnel to the running server
-  - Or just run access_nas.bat file and skip above 2 steps
-  - Go to browser and enter http://localhost:8888
-  - After closing server that was started using the bat file, it is needed to kill the python process
-  - Find PID of the process by running sudo netstat -tulnp | grep :8888
-  - sudo kill -9 pid
-  - Process is automatically killed if server is started manually by running server.py
-
-- To access server on Android through terminal
-  - Install Termux from Play Store
-  - Run command, pkg install socat
-  - Open 1st terminal window and run ssh <ubuntu_user>@<ubuntu_ip>, then run python3 /nas/storage/files/server.py
-  - Open 2nd terminal window and run ssh -L 8888:localhost:8888 <ubuntu_user>@<ubuntu_ip> to create a tunnel to the running server
-  - Open 3rd terminal window and run socat TCP-LISTEN:8888,bind=<android_ip>,fork TCP:127.0.0.1:8888
-  - Go to browser and enter http://<android_ip>:8888
-  - To find Android IP, go to Settings > Connections > Wi-Fi Name > Scroll down to find IP Address
-  - Type exit to close open terminals
+![Ubuntu_IP](assets/Ubuntu_IP.png)
 
 ## NAS Launcher
 

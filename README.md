@@ -58,6 +58,10 @@ Network Attached Storage on a Python server running in Ubuntu
 
 ![Root_Directory](assets/Root_Directory.png)
 
+## Bulk Features
+
+![Bulk_Features](assets/Bulk_Features.png)
+
 ## Subfolder with Parent Traversal
 
 ![Subfolder_with_Parent_Traversal](assets/Subfolder_with_Parent_Traversal.png)

@@ -7,6 +7,8 @@ let mediaFiles = [];
 let currentMediaIndex = -1;
 let allFiles = [];
 let currentFileIndex = 0;
+let currentZipJobId = null;
+let zipProgressIntervalId = null;
 const ip = window.location.hostname;
 const port = 5000;
 
@@ -46,7 +48,7 @@ function uploadFilesSequentially() {
 
     const file = allFiles[currentFileIndex];
 
-    document.getElementById("uploadFilename").textContent = `${file.name}`;
+    document.getElementById("uploadFilename").textContent = `Uploading: ${file.name}`;
 
     const formData = new FormData();
     formData.append("file", file);
@@ -868,3 +870,101 @@ function renameItem(name) {
         alert("Error renaming: " + err.message);
     });
 }
+
+// Start ZIP download with progress bar updates
+function startZipDownload(folderPath) {
+    const progressWrapper = document.getElementById('zipProgressWrapper');
+    const progressBar = document.getElementById('zipProgressBar');
+    const progressText = document.getElementById('zipProgressText');
+    const filenameLabel = document.getElementById('zipDownloadFilename');
+    const cancelZipBtn = document.getElementById('cancelZipBtn');
+
+    progressWrapper.style.display = 'block';
+    cancelZipBtn.style.display = 'inline-block';
+    progressBar.style.width = '0%';
+    progressText.textContent = '0%';
+
+    // Show folder name in progress bar
+    const folderName = folderPath.split('/').filter(Boolean).pop() || folderPath;
+    filenameLabel.textContent = `Zipping: ${decodeURIComponent(folderName)}`;
+
+    // Step 1: Start zip creation job
+    fetch(`/download-zip?folder=${encodeURIComponent(folderPath)}`)
+        .then(response => response.json())
+        .then(data => {
+            const jobId = data.job_id;
+            currentZipJobId = jobId;
+
+            if (zipProgressIntervalId) {
+                clearInterval(zipProgressIntervalId);
+            }
+
+            // Step 2: Poll progress every 500ms
+            zipProgressIntervalId = setInterval(() => {
+                fetch(`/zip-progress?job_id=${jobId}`)
+                    .then(res => res.json())
+                    .then(progressData => {
+                        const prog = progressData.progress;
+                        if (prog < 0) {
+                            clearInterval(zipProgressIntervalId);
+                            zipProgressIntervalId = null;
+                            alert("Error creating zip file.");
+                            progressWrapper.style.display = 'none';
+                            cancelZipBtn.style.display = 'none';
+                            currentZipJobId = null;
+                            return;
+                        }
+                        progressBar.style.width = prog + '%';
+                        progressText.textContent = prog + '%';
+
+                        if (prog >= 100) {
+                            clearInterval(zipProgressIntervalId);
+                            zipProgressIntervalId = null;
+                            // Step 3: Trigger file download
+                            window.location.href = `/download-zip-file?job_id=${jobId}`;
+                            progressWrapper.style.display = 'none';
+                            cancelZipBtn.style.display = 'none';
+                            currentZipJobId = null;
+                        }
+                    })
+                    .catch(() => {
+                        clearInterval(zipProgressIntervalId);
+                        zipProgressIntervalId = null;
+                        alert("Error fetching zip progress.");
+                        progressWrapper.style.display = 'none';
+                        cancelZipBtn.style.display = 'none';
+                        currentZipJobId = null;
+                    });
+            }, 500);
+        })
+        .catch(() => {
+            alert("Failed to start zip download.");
+            progressWrapper.style.display = 'none';
+            cancelZipBtn.style.display = 'none';
+        });
+}
+
+document.getElementById("cancelZipBtn").addEventListener("click", () => {
+  if (!currentZipJobId) return;
+
+  fetch(`/cancel-zip?job_id=${currentZipJobId}`, { method: "POST" })
+    .then(res => res.text())
+    .then(msg => {
+      console.log("Canceled:", msg);
+      // Stop progress polling
+      if (zipProgressIntervalId) {
+          clearInterval(zipProgressIntervalId);
+          zipProgressIntervalId = null;
+      }
+
+      // Reset job ID so no download triggers
+      currentZipJobId = null;
+
+      // Hide UI
+      document.getElementById("zipProgressWrapper").style.display = "none";
+      document.getElementById("cancelZipBtn").style.display = "none";
+    })
+    .catch(err => {
+      console.error("Cancel error:", err);
+    });
+});

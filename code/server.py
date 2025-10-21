@@ -19,6 +19,7 @@ import re
 import signal
 import time
 import threading
+import uuid
 
 # Directory to serve storage
 DIRECTORY = "/nas/storage/files"
@@ -27,6 +28,51 @@ DIRECTORY = "/nas/storage/files"
 CODE_DIRECTORY = "/nas/storage/code"
 
 PORT = 8888
+
+progress_store = {}  # progress %
+zip_paths = {}       # zip file path
+cancelled_jobs = set()
+
+def run_zip_job(abs_path, job_id):
+    try:
+        create_zip_with_progress(abs_path, job_id)
+    except Exception as e:
+        print(f"[Thread Error] Job {job_id}: {e}")
+        traceback.print_exc()
+        progress_store[job_id] = -1
+
+def create_zip_with_progress(abs_path, job_id):
+    try:
+        folder_name = os.path.basename(abs_path)
+        file_list = []
+        for root, dirs, files in os.walk(abs_path):
+            for file in files:
+                file_list.append(os.path.join(root, file))
+        total_files = len(file_list)
+        progress_store[job_id] = 0
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp_zip:
+            with zipfile.ZipFile(tmp_zip.name, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for i, abs_file in enumerate(file_list):
+                    if job_id in cancelled_jobs:
+                        print(f"[Zip Cancelled] Job {job_id}")
+                        progress_store[job_id] = -1
+
+                        # cleanup
+                        cancelled_jobs.remove(job_id)
+                        progress_store.pop(job_id, None)
+                        return
+
+                    rel_file = os.path.relpath(abs_file, abs_path)
+                    zipf.write(abs_file, arcname=os.path.join(folder_name, rel_file))
+
+                    # Update progress
+                    progress_store[job_id] = int((i+1) / total_files * 100) if total_files else 100
+        zip_paths[job_id] = tmp_zip.name
+    except Exception as e:
+        print(f"Error in create_zip_with_progress: {e}")
+        traceback.print_exc()
+        progress_store[job_id] = -1  # Error indicator
 
 # --- Add helper functions for process‐killing ---
 def kill_process_on_port(port):
@@ -219,7 +265,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                     <div class="dropdown">
                         <button class="dots-btn" onclick="toggleDropdown(event)">&#8942;</button>
                         <div class="dropdown-content">
-                            <a href="/download-zip?folder={quote(os.path.join(rel_path, name))}" class="dropdown-link">Download ZIP</a>
+                            <a href="javascript:void(0)" class="dropdown-link" onclick="startZipDownload('{quote(os.path.join(rel_path, name))}')">Download ZIP</a>
                             <button class="rename-btn" onclick="renameItem('{name}')">Rename</button>
                             <button class="delete-btn" onclick="deleteFile('{name}', false)">Delete</button>
                             <button class="share-btn" onclick="showShareLink('{name}')">Share Link</button>
@@ -574,56 +620,136 @@ class FileHandler(SimpleHTTPRequestHandler):
         if parsed_url.path == "/details":
             return self.handle_details(parsed_url)
         elif parsed_url.path == "/download-zip":
-            query = parse_qs(parsed_url.query)
-            folder = query.get("folder", [None])[0]
-
-            if not folder:
-                self.send_response(400)
-                self.end_headers()
-                self.wfile.write(b"Missing folder parameter")
-                return
-
-            rel_path = os.path.normpath(unquote(folder)).lstrip("/")
-            abs_path = os.path.abspath(os.path.join(DIRECTORY, rel_path))
-
-            if not abs_path.startswith(os.path.abspath(DIRECTORY)) or not os.path.isdir(abs_path):
-                self.send_response(400)
-                self.end_headers()
-                self.wfile.write(b"Invalid folder path")
-                return
-
             try:
-                folder_name = os.path.basename(abs_path)
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp_zip:
-                    with zipfile.ZipFile(tmp_zip.name, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                        for root, dirs, files in os.walk(abs_path):
-                            for file in files:
-                                abs_file = os.path.join(root, file)
-                                rel_file = os.path.relpath(abs_file, abs_path)
-                                zipf.write(abs_file, arcname=os.path.join(folder_name, rel_file))
+                query = parse_qs(parsed_url.query)
+                folder = query.get("folder", [None])[0]
 
-                    tmp_zip_path = tmp_zip.name
+                if not folder:
+                  self.send_response(400)
+                  self.end_headers()
+                  self.wfile.write(b"Missing folder parameter")
+                  return
 
-                # Serve the zip file
+                rel_path = os.path.normpath(unquote(folder)).lstrip("/")
+                abs_path = os.path.abspath(os.path.join(DIRECTORY, rel_path))
+
+                if not abs_path.startswith(os.path.abspath(DIRECTORY)) or not os.path.isdir(abs_path):
+                  self.send_response(400)
+                  self.end_headers()
+                  self.wfile.write(b"Invalid folder path")
+                  return
+
+                # Generate a job id
+                job_id = str(uuid.uuid4())
+
+                # Start zip creation in a thread
+                # threading.Thread(target=create_zip_with_progress, args=(abs_path, job_id)).start()
+                threading.Thread(target=run_zip_job, args=(abs_path, job_id)).start()
+
+                # create_zip_with_progress(abs_path, job_id)
+
+                # Respond immediately with job_id
                 self.send_response(200)
-                self.send_header("Content-Type", "application/zip")
-                self.send_header("Content-Disposition", f'attachment; filename="{folder_name}.zip"')
-                fs = os.stat(tmp_zip_path)
-                self.send_header("Content-Length", str(fs.st_size))
+                self.send_header("Content-Type", "application/json")
                 self.end_headers()
-
-                with open(tmp_zip_path, "rb") as f:
-                    shutil.copyfileobj(f, self.wfile)
-
-                # Clean up
-                os.remove(tmp_zip_path)
-
+                self.wfile.write(f'{{"job_id": "{job_id}"}}'.encode())
             except Exception as e:
-                print("Error zipping folder:", e)
+                print("Error initiating zip:", e)
                 traceback.print_exc()
                 self.send_response(500)
                 self.end_headers()
-                self.wfile.write(b"Failed to create ZIP file")
+                self.wfile.write(b"Failed to initiate zip")
+        elif parsed_url.path == "/zip-progress":
+            try:
+                query = parse_qs(parsed_url.query)
+                job_id = query.get("job_id", [None])[0]
+
+                if not job_id or job_id not in progress_store:
+                  self.send_response(404)
+                  self.end_headers()
+                  self.wfile.write(b"Job not found")
+                  return
+
+                prog = progress_store[job_id]
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(f'{{"progress": {prog}}}'.encode())
+            except Exception as e:
+                print("Error fetching zip progress:", e)
+                traceback.print_exc()
+                self.send_response(500)
+                self.end_headers()
+                self.wfile.write(b"Failed to fetch zip progress")
+        elif parsed_url.path == "/download-zip-file":
+            try:
+                query = parse_qs(parsed_url.query)
+                job_id = query.get("job_id", [None])[0]
+                print(f"Query: {query}")
+                print(f"Job ID: {job_id}")
+
+                # Wait for the zip file to be ready (up to 30 seconds)
+                max_wait_time = 30  # seconds
+                wait_interval = 1   # seconds
+                waited = 0
+
+                while job_id not in zip_paths and waited < max_wait_time:
+                    time.sleep(wait_interval)
+                    waited += wait_interval
+                    print(f"Waiting for zip file... ({waited}s)")
+
+                if job_id not in zip_paths:
+                    self.send_response(404)
+                    self.end_headers()
+                    self.wfile.write(b"File not found (zip not ready)")
+                    return
+
+                zip_path = zip_paths[job_id]
+                print(f"Zip Path: {zip_path}")
+                folder_name = os.path.splitext(os.path.basename(zip_path))[0]
+
+                self.send_response(200)
+                self.send_header("Content-Type", "application/zip")
+                self.send_header("Content-Disposition", f'attachment; filename="{folder_name}.zip"')
+                fs = os.stat(zip_path)
+                self.send_header("Content-Length", str(fs.st_size))
+                self.end_headers()
+
+                with open(zip_path, "rb") as f:
+                  shutil.copyfileobj(f, self.wfile)
+
+                # Clean up
+                os.remove(zip_path)
+                del zip_paths[job_id]
+                del progress_store[job_id]
+            except Exception as e:
+                print("Error downloading zipped folder:", e)
+                traceback.print_exc()
+                self.send_response(500)
+                self.end_headers()
+                self.wfile.write(b"Failed to download ZIP file")
+        elif parsed_url.path == "/cancel-zip":
+            try:
+                query = parse_qs(parsed_url.query)
+                job_id = query.get("job_id", [None])[0]
+
+                if not job_id or job_id not in progress_store:
+                    self.send_response(404)
+                    self.end_headers()
+                    self.wfile.write(b"Job not found")
+                    return
+
+                cancelled_jobs.add(job_id)
+
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b"Zip job cancelled")
+            except Exception as e:
+                print("Error cancelling zip:", e)
+                traceback.print_exc()
+                self.send_response(500)
+                self.end_headers()
+                self.wfile.write(b"Failed to cancel zip job")
         else:
             # Default file serving with Range support
             try:

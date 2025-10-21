@@ -62,6 +62,22 @@
         </div>
     </div>
 
+    <!-- ZIP Download Progress Bar -->
+    <div class="progress-wrapper" id="zipProgressWrapper" style="display: none; margin: 10px 0;">
+        <div class="progress-row">
+            <button id="cancelZipBtn" class="cancel-upload-btn" title="Cancel Zip">X</button>
+
+            <div class="progress-info">
+                <div class="progress-container" id="zipProgressContainer">
+                    <div class="progress-bar" id="zipProgressBar" style="width: 0%;">
+                        <span class="progress-text" id="zipProgressText">0%</span>
+                    </div>
+                </div>
+                <div class="upload-filename" id="zipDownloadFilename" style="margin-left: 10px; font-weight: bold;"></div>
+            </div>
+        </div>
+    </div>
+
     <main>
 		{{file_table}}
 

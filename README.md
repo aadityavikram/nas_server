@@ -95,6 +95,10 @@ Network Attached Storage on a Python server running in Ubuntu
 
 ![Folder_More_Options](assets/Folder_More_Options.png)
 
+## Folder download as zip
+
+![Folder_Download_Zip](assets/Folder_Download_Zip.png)
+
 ## Rename Functionality
 
 ![Rename_Functionality](assets/Rename_Functionality.png)

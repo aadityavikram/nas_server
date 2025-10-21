@@ -14,36 +14,27 @@
 	Ex. ssh j@192.168.1.46
 8. IP Address will change each time server restarts
 9. To check current IP address, hostname -I. This command will give 2 IPs, one will be the local IPV4 address (required for SSH), other will be of docker image. Usually one with 192.168.x.x will be the correct IP
-10. Run access_nas.bat file from Windows desktop
-	a. This will create a server at address http://localhost:8888. Access the address in browser.
-	b. It will point to /nas/storage/files. Can change this location in bat file
-11. After closing NAS Server, find process running on port 8888 and kill it (see point 17)
-12. Can also run server on Windows desktop with the following steps: -
-	a. Open 1st terminal window then run, ssh <user>@<ip>, then run python3 /nas/storage/files/server.py
-	b. Open 2nd terminal window then run, ssh -L 8888:localhost:8888 <user>@<ip>
-	c. Go to browser and go to http://localhost:8888
-	d. In this method, there is no need to kill the process
-13. NAS folder path: /nas/storage
-14. To transfer file from a device to server, scp <path_of_file_on_device> <user>@<ip>:/nas/storage
+10. NAS folder path: /nas/storage
+11. To transfer file from a device to server, scp <path_of_file_on_device> <user>@<ip>:/nas/storage
 	Ex. scp .\Downloads\ABCD.txt j@192.168.1.46:/nas/storage
-15. To transfer file from server to a device, scp <user>@<ip>:/nas/storage <path_of_file_on_device>
+12. To transfer file from server to a device, scp <user>@<ip>:/nas/storage <path_of_file_on_device>
 	Ex. scp j@192.168.1.46:/nas/storage .\Downloads\ABCD.txt
-16. To transfer non-empty folders, add -r to commands
+13. To transfer non-empty folders, add -r to commands
 	Ex. scp -r .\Downloads j@192.168.1.46:/nas/storage
-17. To exit server, run command exit
-18. To find a process running on a port, for ex. 8888
+14. To exit server, run command exit
+15. To find a process running on a port, for ex. 8888
 	a. sudo netstat -tulnp | grep :8888
 	b. Output should be like following
 		tcp        0      0 0.0.0.0:8888            0.0.0.0:*               LISTEN      15597/python3
 	c. Here the process ID is 15597
 	d. To kill a process, sudo kill -9 <process_id>
-19. To check if Shinobi is running, pm2 status
-20. To start Shinobi (if not running)
+16. To check if Shinobi is running, pm2 status
+17. To start Shinobi (if not running)
 	a. cd /home/Shinobi
 	b. npm install
 	c. pm2 start camera.js
 	d. pm2 save
-21. To login to Shinobi on Ubuntu
+18. To login to Shinobi on Ubuntu
 	a. Go to browser
 	b. Open http://localhost:8080/super
 	c. Default username is admin@shinobi.video
@@ -51,20 +42,12 @@
 	e. Create account that will manage cameras
 	f. Go to browser and go to http://localhost:8080 to access cameras
 	g. Shinobi requires MariaDB which is not supported in Ubuntu 18.04 LTS now
-22. Shinobi installation instructions on Jetson Nano
+19. Shinobi installation instructions on Jetson Nano
 	https://docs.shinobi.video/installation/jetson-nano
-23. To access SSH server on Android (termux): -
-	a. Install Termux from Play Store
-	b. Run command, pkg install socat
-	c. Open 1st terminal window then run, ssh <user>@<ip>, then run python3 /nas/storage/files/server.py
-	d. Open 2nd terminal window then run, ssh -L 8888:localhost:8888 <user>@<ip>
-	e. Open 3rd terminal window then run, socat TCP-LISTEN:8888,bind=<android_ip>,fork TCP:127.0.0.1:8888
-	f. Go to browser and go to http://<android_ip>:8888
-	g. To find Android IP, go to Settings > Connections > Wi-Fi Name > Scroll down to find IP Address
-	h. Type exit to close open terminals
-24. Simpler process to access server on all devices connected to same Wi-Fi
-	a. Run python3 /nas/storage/files/app.py on server
+20. Process to access server on all devices connected to same Wi-Fi
+	a. Run python3 /nas/storage/files/app.py in an Ubuntu terminal
 	b. On 1st device, access http://<server_ip>:5000 and enter credentials
-	c. It will redirect to http://<server_ip>:8888 and open server in browser
+	c. It will redirect to http://<server_ip>:8888
 	d. For rest of the devices, just visit http://<server_ip>:8888 in browser
-	e. Session will be maintained till server device is on. After that credentials need to be entered again at http://<server_ip>:5000
+	e. To logout click on Logout button. It will redirect to login page and kill the process on 8888
+	f. app.py should always be running in an Ubuntu terminal

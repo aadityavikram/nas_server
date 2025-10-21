@@ -33,6 +33,8 @@ progress_store = {}  # progress %
 zip_paths = {}       # zip file path
 cancelled_jobs = set()
 
+TEMP_ZIP_DIRECTORY = "/nas/storage/temp/zips"
+
 def run_zip_job(abs_path, job_id):
     try:
         create_zip_with_progress(abs_path, job_id)
@@ -51,7 +53,9 @@ def create_zip_with_progress(abs_path, job_id):
         total_files = len(file_list)
         progress_store[job_id] = 0
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp_zip:
+        os.makedirs(TEMP_ZIP_DIRECTORY, exist_ok=True)
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".zip", dir=TEMP_ZIP_DIRECTORY) as tmp_zip:
             with zipfile.ZipFile(tmp_zip.name, 'w', zipfile.ZIP_DEFLATED) as zipf:
                 for i, abs_file in enumerate(file_list):
                     if job_id in cancelled_jobs:
@@ -643,10 +647,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                 job_id = str(uuid.uuid4())
 
                 # Start zip creation in a thread
-                # threading.Thread(target=create_zip_with_progress, args=(abs_path, job_id)).start()
                 threading.Thread(target=run_zip_job, args=(abs_path, job_id)).start()
-
-                # create_zip_with_progress(abs_path, job_id)
 
                 # Respond immediately with job_id
                 self.send_response(200)
@@ -682,6 +683,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(b"Failed to fetch zip progress")
         elif parsed_url.path == "/download-zip-file":
+            zip_path = None
             try:
                 query = parse_qs(parsed_url.query)
                 job_id = query.get("job_id", [None])[0]
@@ -719,11 +721,14 @@ class FileHandler(SimpleHTTPRequestHandler):
                   shutil.copyfileobj(f, self.wfile)
 
                 # Clean up
+                print(f"Zip path: {zip_path}")
                 os.remove(zip_path)
                 del zip_paths[job_id]
                 del progress_store[job_id]
             except Exception as e:
                 print("Error downloading zipped folder:", e)
+                if zip_path and os.path.exists(zip_path):
+                    os.remove(zip_path)
                 traceback.print_exc()
                 self.send_response(500)
                 self.end_headers()
@@ -740,6 +745,18 @@ class FileHandler(SimpleHTTPRequestHandler):
                     return
 
                 cancelled_jobs.add(job_id)
+
+                # Remove zip file if it already exists
+                zip_path = zip_paths.get(job_id)
+                print(f"Zip path in /cancel: {zip_path}")
+                if zip_path and os.path.exists(zip_path):
+                    os.remove(zip_path)
+                    print(f"Removed partially created zip for job {job_id}")
+
+                # Clean up all job state
+                cancelled_jobs.discard(job_id)
+                zip_paths.pop(job_id, None)
+                progress_store.pop(job_id, None)
 
                 self.send_response(200)
                 self.end_headers()
@@ -796,6 +813,8 @@ class ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
     daemon_threads = True  # threads exit when main thread exits
 
 if __name__ == "__main__":
+    os.makedirs(DIRECTORY, exist_ok=True)
+    os.makedirs(CODE_DIRECTORY, exist_ok=True)
     os.chdir(DIRECTORY)
     server_address = ("", 8888)
     httpd = ThreadedHTTPServer(server_address, FileHandler)

@@ -945,7 +945,9 @@ function startZipDownload(folderPath) {
 }
 
 document.getElementById("cancelZipBtn").addEventListener("click", () => {
-  if (!currentZipJobId) return;
+  if (!currentZipJobId) {
+    return;
+  }
 
   fetch(`/cancel-zip?job_id=${currentZipJobId}`, { method: "POST" })
     .then(res => res.text())

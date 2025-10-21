@@ -12,7 +12,7 @@ Network Attached Storage on a Python server running in Ubuntu
 - Progress bar on upload file
 - Link Sharing
 - Download and delete file
-- Download folder as zip and delete
+- Download folder as zip and delete folder
 - Rename file and folder
 - Delete file and folder
 - Bulk delete using checkbox
@@ -21,6 +21,10 @@ Network Attached Storage on a Python server running in Ubuntu
 - Gallery functionality for current folder
 - Range request for video display to enable seek forward or jump to a timeline
 - Logout feature that kills server process and redirects to login page
+
+## If low on storage
+- Check /nas/storage/temp/zips. There maybe temporary zip files present due to failed folder downloads
+- In such case, run command sudo rm /nas/storage/temp/zips/*zip on Ubuntu to remove temporary zip files
 
 ## Steps
 

@@ -23,8 +23,9 @@ Network Attached Storage on a Python server running in Ubuntu
 - Logout feature that kills server process and redirects to login page
 
 ## If low on storage
-- Check /nas/storage/temp/zips. There maybe temporary zip files present due to failed folder downloads
-- In such case, run command sudo rm /nas/storage/temp/zips/*zip on Ubuntu to remove temporary zip files
+- ssh user@ip
+- Check /nas/storage/temp/zips. There may be temporary zip files present due to failed folder downloads
+- In such case, run command sudo rm /nas/storage/temp/zips/*zip to remove temporary zip files
 
 ## Steps
 

@@ -51,3 +51,8 @@
 	d. For rest of the devices, just visit http://<server_ip>:8888 in browser
 	e. To logout click on Logout button. It will redirect to login page and kill the process on 8888
 	f. app.py should always be running in an Ubuntu terminal
+21. If running low on space
+    a. ssh user@ip
+    b. Run ls -l /nas/storage/temp/zips
+    c. There may be temporary zip files present due to failed folder downloads
+    d. Run sudo rm /nas/storage/temp/zips/*zip to remove temporary zip files

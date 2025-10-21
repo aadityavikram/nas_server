@@ -280,7 +280,7 @@ function toggleDropdownMain(event) {
     const dropdown = parent.querySelector('.dropdown-content-main');
 
     // Close all other dropdowns
-    document.querySelectorAll('.dropdown-content-main').forEach(menu => {
+    document.querySelectorAll('.dropdown-content-main, .dropdown-content, .dropdown-content-bulk').forEach(menu => {
         if (menu !== dropdown) {
             menu.style.display = 'none';
         }
@@ -288,25 +288,6 @@ function toggleDropdownMain(event) {
 
     // Toggle this one
     dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
-}
-
-
-// Close all dropdowns when clicking outside
-window.addEventListener('click', () => {
-	closeMainDropdown();
-    closeAllDropdowns();
-});
-
-function closeMainDropdown() {
-    document.querySelectorAll('.dropdown-content-main').forEach(menu => {
-        menu.style.display = 'none';
-    });
-}
-
-function closeAllDropdowns() {
-    document.querySelectorAll('.dropdown-content').forEach(menu => {
-        menu.style.display = 'none';
-    });
 }
 
 function deleteFile(name, uploadCancelled = false) {
@@ -813,4 +794,36 @@ document.getElementById("bulkDelete-btn").addEventListener("click", function () 
         deleteFile(name, true);
     });
     alert("Selected items deleted.");
+});
+
+// Toggle display of bulk dropdown based on checkbox selection
+function toggleBulkDeleteButton() {
+    const checked = document.querySelectorAll(".fileCheckbox:checked").length > 0;
+    const bulkDropdown = document.getElementById("bulkActionsDropdown");
+    bulkDropdown.style.display = checked ? "inline-block" : "none";
+}
+
+// Toggle dropdown visibility on click
+function toggleDropdownBulk(event) {
+    event.stopPropagation();
+
+    const parent = event.currentTarget.closest('.dropdown-bulk');
+    const dropdown = parent.querySelector('.dropdown-content-bulk');
+
+    // Close all other dropdowns
+    document.querySelectorAll('.dropdown-content-main, .dropdown-content, .dropdown-content-bulk').forEach(menu => {
+        if (menu !== dropdown) {
+            menu.style.display = 'none';
+        }
+    });
+
+    // Toggle this dropdown
+    dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+}
+
+// Close all dropdowns when clicking outside
+document.addEventListener("click", function () {
+    document.querySelectorAll('.dropdown-content-main, .dropdown-content, .dropdown-content-bulk').forEach(menu => {
+        menu.style.display = 'none';
+    });
 });

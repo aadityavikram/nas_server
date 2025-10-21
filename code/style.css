@@ -153,6 +153,44 @@ body.scrolled .header-bar {
     background-color: #003300;
 }
 
+.dropdown-bulk {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-content-bulk {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: black;
+    border: 1px solid #00ff00;
+    border-radius: 4px;
+    min-width: 120px;
+    z-index: 999;
+    padding: 5px 0;
+    box-shadow: 0 2px 10px rgba(0, 255, 0, 0.3);
+}
+
+.dropdown-item-bulk {
+    padding: 8px 12px;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    color: #00ff00;
+    font-family: 'Share Tech Mono', monospace;
+    border: none;
+    cursor: pointer;
+}
+
+.dropdown-item-bulk:hover {
+    background-color: #003300;
+}
+
+.dropdown-bulk.show .dropdown-content-bulk {
+    display: block;
+}
+
 /* === Search Form === */
 .search-form {
     display: flex;
@@ -410,7 +448,7 @@ main {
     font-family: 'Share Tech Mono', monospace;
 }
 
-#bulkDelete-btn {
+#bulkDelete-btn:hover {
     background-color: #003300;
 }
 

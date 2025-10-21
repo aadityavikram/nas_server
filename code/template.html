@@ -13,12 +13,18 @@
 
         <div class="right-controls">
             <button class="gallery-btn" onclick="openGallery()">Gallery</button>
-            <button id="bulkDelete-btn" style="display:none;">Delete Selected</button>
+
+            <div class="dropdown-bulk" id="bulkActionsDropdown" style="display: none;">
+                <button class="dots-btn-main" onclick="toggleDropdownBulk(event)">Bulk Actions</button>
+                <div class="dropdown-content-bulk">
+                    <button class="dropdown-item-bulk" id="bulkDelete-btn">Delete Selected</button>
+                </div>
+            </div>
 
             <div class="dropdown-main">
                 <button class="dots-btn-main" onclick="toggleDropdownMain(event)">Options</button>
                 <div class="dropdown-content-main">
-                    <button class="dropdown-item-main" onclick="triggerFileUpload()" multiple>Upload File(s)</button>
+                    <button class="dropdown-item-main" onclick="triggerFileUpload()" multiple>Upload Files</button>
 					<button class="dropdown-item-main" onclick="triggerFolderUpload()">Upload Folder</button>
                     <button class="dropdown-item-main" onclick="createFolder()">New Folder</button>
                 </div>

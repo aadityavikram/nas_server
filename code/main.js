@@ -726,7 +726,7 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
 
 function renameItem(name) {
     const baseName = name.replace(/\/$/, ''); // strip trailing slash
-    const newName = prompt(`Rename "${baseName}" to:`);
+    const newName = prompt(`Rename "${baseName}" to:`, baseName);
 
     if (!newName || newName === baseName) {
         return;

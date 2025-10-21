@@ -15,7 +15,9 @@ function triggerFileUpload() {
     input.click();
 
     input.onchange = () => {
-        if (input.files.length === 0) return;
+        if (input.files.length === 0) {
+            return;
+        }
 
         allFiles = Array.from(input.files);
         currentFileIndex = 0;
@@ -25,7 +27,9 @@ function triggerFileUpload() {
 }
 
 function uploadFilesSequentially() {
-    if (wasCancelled) return;
+    if (wasCancelled) {
+        return;
+    }
 
     if (currentFileIndex >= allFiles.length) {
         // All files done, hide the progress UI
@@ -63,7 +67,9 @@ function uploadFilesSequentially() {
 
     xhr.onloadend = () => {
         currentXHR = null;
-        if (wasCancelled) return;
+        if (wasCancelled) {
+            return;
+        }
     };
 
     xhr.onreadystatechange = () => {
@@ -149,7 +155,9 @@ function triggerFolderUpload() {
     input.multiple = true;         // Allow multiple files inside folders
 
     input.onchange = () => {
-        if (!input.files.length) return;
+        if (!input.files.length) {
+            return;
+        }
 
         const files = Array.from(input.files);
         const currentPath = window.location.pathname;
@@ -306,7 +314,9 @@ function deleteFile(name, uploadCancelled = false) {
 
 	if (!uploadCancelled) {
 		let confirmMsg = `Are you sure you want to delete "${baseName}"?`;
-		if (!confirm(confirmMsg)) return;
+		if (!confirm(confirmMsg)) {
+		    return;
+		}
 	}
 
     let fullPath = currentPath;
@@ -345,7 +355,9 @@ function deleteFile(name, uploadCancelled = false) {
 function createFolder() {
     const folderName = prompt("Enter new folder name:");
 
-    if (!folderName) return;
+    if (!folderName) {
+        return;
+    }
 	
 	let fullPath = currentPath;
 
@@ -454,7 +466,9 @@ function previewFile(fileName) {
 
 // Update showPrevMedia and showNextMedia to also update carousel selection
 function showPrevMedia() {
-    if (mediaFiles.length === 0) return;
+    if (mediaFiles.length === 0) {
+        return;
+    }
 
     currentMediaIndex = (currentMediaIndex - 1 + mediaFiles.length) % mediaFiles.length;
     previewMediaAtIndex(currentMediaIndex);
@@ -462,7 +476,9 @@ function showPrevMedia() {
 }
 
 function showNextMedia() {
-    if (mediaFiles.length === 0) return;
+    if (mediaFiles.length === 0) {
+        return;
+    }
 
     currentMediaIndex = (currentMediaIndex + 1) % mediaFiles.length;
     previewMediaAtIndex(currentMediaIndex);
@@ -541,7 +557,6 @@ function updateCarousel() {
         thumb.classList.add("carousel-thumb");
         if (index === currentMediaIndex) {
             thumb.classList.add("selected");
-            // Optional: add extra styling for focus
         }
 
         thumb.addEventListener("click", () => {
@@ -555,7 +570,9 @@ function updateCarousel() {
 }
 
 function previewMediaAtIndex(index) {
-    if (index < 0 || index >= mediaFiles.length) return;
+    if (index < 0 || index >= mediaFiles.length) {
+        return;
+    }
 
     const mediaPath = mediaFiles[index];
     const fileName = mediaPath.split('/').pop();
@@ -593,7 +610,9 @@ function closeModal() {
 
 document.getElementById('previewContent').addEventListener('click', (e) => {
     const fileName = document.getElementById('previewFileName').textContent;
-    if (!fileName) return;
+    if (!fileName) {
+        return;
+    }
 
     const imageExtensions = ["png", "jpg", "jpeg", "gif", "bmp", "webp"];
     const ext = fileName.split('.').pop().toLowerCase();
@@ -708,7 +727,9 @@ function closeGallery() {
 document.getElementById("logout-btn").addEventListener("click", async () => {
     try {
         const confirmLogout = confirm("Are you sure you want to logout?");
-        if (!confirmLogout) return;
+        if (!confirmLogout) {
+            return;
+        }
 
         // Call backend logout route
         fetch("/logout", { method: "POST" });
@@ -723,7 +744,9 @@ function renameItem(name) {
     const baseName = name.replace(/\/$/, ''); // strip trailing slash
     const newName = prompt(`Rename "${baseName}" to:`);
 
-    if (!newName || newName === baseName) return;
+    if (!newName || newName === baseName) {
+        return;
+    }
 
     let fullPath = currentPath;
     if (!fullPath.endsWith("/")) fullPath += "/";
@@ -775,34 +798,19 @@ document.getElementById("bulkDelete-btn").addEventListener("click", function () 
     const selected = Array.from(document.querySelectorAll(".fileCheckbox:checked"))
                           .map(cb => cb.getAttribute("data-name"));
 
-    if (selected.length === 0) return;
+    if (selected.length === 0) {
+        return;
+    }
 
     console.log("Selected: " + selected);
 
-    if (!confirm(`Are you sure you want to delete ${selected.length} item(s)?`)) return;
+    if (!confirm(`Are you sure you want to delete ${selected.length} item(s)?`)) {
+        return;
+    }
 
     // Send individual delete requests
     selected.map(name => {
         deleteFile(name, true);
     });
     alert("Selected items deleted.");
-
-//    Promise.all(selected.map(name => {
-//        return fetch(`/delete?file=${encodeURIComponent(currentPath + "/" + name)}`, {
-//            method: 'DELETE',
-//        });
-//    }))
-//    .then(results => {
-//        const allOk = results.every(res => res.ok);
-//        if (allOk) {
-//            alert("Selected items deleted.");
-//        } else {
-//            alert("Some deletions may have failed. " + allOk);
-//        }
-//        window.location.reload();
-//    })
-//    .catch(err => {
-//        console.error("Bulk delete error:", err);
-//        alert("Error during bulk delete.");
-//    });
 });

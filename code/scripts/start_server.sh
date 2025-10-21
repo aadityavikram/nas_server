@@ -8,7 +8,7 @@ read -p "Enter Ubuntu IP address: " UBUNTU_IP
 read -p "Enter Android IP address: " ANDROID_IP
 
 # Configuration
-REMOTE_FILE_DIR="/nas/storage/files"
+REMOTE_FILE_DIR="/nas/storage/code"
 LOCAL_PORT=8888
 REMOTE_PORT=8888
 

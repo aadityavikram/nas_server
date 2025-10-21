@@ -102,7 +102,7 @@ def start_server(username, ip, password):
         ssh.connect(ip, username=username, password=password)
 
         # Run the server in a nohup-like way to keep it running after SSH disconnects
-        cmd = "nohup python3 /nas/storage/files/server.py > /dev/null 2>&1 &"
+        cmd = "nohup python3 /nas/storage/code/server.py > /dev/null 2>&1 &"
         stdin, stdout, stderr = ssh.exec_command(cmd)
         stdout.channel.recv_exit_status()  # Wait for command to be accepted
         print("NAS server started remotely.")

@@ -45,7 +45,7 @@
 19. Shinobi installation instructions on Jetson Nano
 	https://docs.shinobi.video/installation/jetson-nano
 20. Process to access server on all devices connected to same Wi-Fi
-	a. Run python3 /nas/storage/files/app.py in an Ubuntu terminal
+	a. Run python3 /nas/storage/code/app.py in an Ubuntu terminal
 	b. On 1st device, access http://<server_ip>:5000 and enter credentials
 	c. It will redirect to http://<server_ip>:8888
 	d. For rest of the devices, just visit http://<server_ip>:8888 in browser

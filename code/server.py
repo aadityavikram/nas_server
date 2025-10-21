@@ -23,6 +23,8 @@ import threading
 # Directory to serve
 DIRECTORY = "/nas/storage/files"
 
+CODE_DIRECTORY = "/nas/storage/code"
+
 # Files you want to hide from the listing
 HIDDEN_FILES = {"app.py", "server.py", "template.html", "style.css", "main.js"}
 
@@ -125,7 +127,7 @@ class FileHandler(SimpleHTTPRequestHandler):
 
     def list_directory(self, path):
         try:
-            with open(os.path.join("/nas/storage/files", "template.html"), "r", encoding="utf-8") as f:
+            with open(os.path.join(CODE_DIRECTORY, "template.html"), "r", encoding="utf-8") as f:
                 template = f.read()
         except FileNotFoundError:
             self.send_error(500, "Missing template.html")
@@ -534,6 +536,29 @@ class FileHandler(SimpleHTTPRequestHandler):
             
     def do_GET(self):
         parsed_url = urlparse(self.path)
+        # Serve static files from /nas/storage/code (e.g., style.css, main.js)
+        if parsed_url.path.startswith("/static/"):
+            file_name = parsed_url.path[len("/static/"):]
+            static_path = os.path.join(CODE_DIRECTORY, file_name)
+
+            if not os.path.isfile(static_path):
+                self.send_error(404, "Static file not found")
+                return
+
+            try:
+                ctype = self.guess_type(static_path)
+                self.send_response(200)
+                self.send_header("Content-type", ctype)
+                fs = os.stat(static_path)
+                self.send_header("Content-Length", str(fs.st_size))
+                self.end_headers()
+                with open(static_path, "rb") as f:
+                    shutil.copyfileobj(f, self.wfile)
+                return
+            except Exception as e:
+                print("Error serving static file:", e)
+                self.send_error(500, "Error serving static file")
+                return
         if parsed_url.path == "/details":
             return self.handle_details(parsed_url)
         elif parsed_url.path == "/download-zip":

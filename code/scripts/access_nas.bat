@@ -6,7 +6,7 @@ set /p UBUNTU_USER=Enter Ubuntu username:
 set /p UBUNTU_IP=Enter Ubuntu IP address: 
 
 :: ===== USER CONFIGURATION =====
-set "REMOTE_FILE_DIR=/nas/storage/files"
+set "REMOTE_FILE_DIR=/nas/storage/code"
 set "LOCAL_PORT=8888"
 set "REMOTE_PORT=8888"
 :: ==============================

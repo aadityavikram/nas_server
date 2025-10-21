@@ -23,23 +23,24 @@ Network Attached Storage on a Python server running in Ubuntu
 ## Steps
 
 - Initial setup on Ubuntu
+  - Create a directory /nas/storage/code on Ubuntu
   - Create a directory /nas/storage/files on Ubuntu
   - This will serve as root directory for the NAS
-  - Give permission to current user to read and write from it with command sudo chmod 0755 /nas/storage/files
-  - Transfer app.py, server.py, template.html, style.css and main.js to the above directory
+  - Give permission to current user to read and write from it with command sudo chmod 0755 /nas/storage/code and /nas/storage/files
+  - Transfer app.py, server.py, template.html, style.css and main.js to /nas/storage/code
 
 - To access server on Windows through login page
-  - Run python3 /nas/storage/files/app.py on Ubuntu
-  - Open http://<ubuntu_ip>:5000 in browser to open Launcher
+  - Run python3 /nas/storage/code/app.py on Ubuntu
+  - Open http://<ubuntu_ip>:5000 in browser on any device on same Wi-Fi to open Launcher
   - Enter credentials and wait for http://<ubuntu_ip>:8888 to open
   - Now the app is running on server and can be accessed from any device on same Wi-Fi at http://<ubuntu_ip>:8888
   - To logout and kill process, click on Logout button. It will redirect to login page and kill process on 8888
-  - app.py should be running in a terminal window in Ubuntu always
+  - app.py should always be running in a terminal window in Ubuntu
   - To get Ubuntu IP, in terminal type ip addr and search for wlan0. There will be an inet with IP in the form 192.168.x.x
 
 - To access server without login
-  - Run python3 /nas/storage/files/server.py
-  - Open http://<ubuntu_ip>:8888 in browser to access the server without entering credentials
+  - Run python3 /nas/storage/code/server.py
+  - Open http://<ubuntu_ip>:8888 in browser on any device on same Wi-Fi to access the server without entering credentials
   - server.py should be running in a terminal window in Ubuntu always
   - To kill process in Ubuntu
     - sudo netstat | -tulnp grep 8888 to get process ID
@@ -80,11 +81,15 @@ Network Attached Storage on a Python server running in Ubuntu
 
 ![Folder_More_Options](assets/Folder_More_Options.png)
 
+## Rename Functionality
+
+![Rename_Functionality](assets/Rename_Functionality.png)
+
 ## Delete Functionality
 
 ![Delete_Functionality](assets/Delete_Functionality.png)
 
-## Gallery Functionality in current directory
+## Gallery Functionality. Image and Video can be opened in new tab by clicking in gallery
 
 ![Gallery_Functionality](assets/Gallery_Functionality.png)
 
@@ -92,7 +97,7 @@ Network Attached Storage on a Python server running in Ubuntu
 
 ![Preview_Functionality_Video](assets/Preview_Functionality_Video.png)
 
-## Preview Functionality (Image) with Navigation and Preview. Can be opened in new tab by clicking in preview
+## Preview Functionality (Image) with Navigation and Preview. Image can be opened in new tab by clicking in preview
 
 ![Preview_Functionality_Image](assets/Preview_Functionality_Image.png)
 

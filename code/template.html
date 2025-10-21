@@ -18,7 +18,7 @@
             <div class="dropdown-main">
                 <button class="dots-btn-main" onclick="toggleDropdownMain(event)">Options</button>
                 <div class="dropdown-content-main">
-                    <button class="dropdown-item-main" onclick="triggerFileUpload()">Upload File</button>
+                    <button class="dropdown-item-main" onclick="triggerFileUpload()" multiple>Upload File</button>
 					<button class="dropdown-item-main" onclick="triggerFolderUpload()">Upload Folder</button>
                     <button class="dropdown-item-main" onclick="createFolder()">New Folder</button>
                 </div>
@@ -37,7 +37,7 @@
     {{backToRootHTML}}
 
     <!-- Hidden file input triggered by JS -->
-    <input type="file" id="fileInput" style="display:none" />
+    <input type="file" id="fileInput" style="display:none" multiple />
 
     <!-- Progress bar container -->
     <div class="progress-wrapper" id="progressWrapper" style="display: none;">

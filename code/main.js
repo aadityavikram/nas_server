@@ -5,6 +5,8 @@ let folderUploadXHRs = [];
 let folderUploadCancelled = false;
 let mediaFiles = [];
 let currentMediaIndex = -1;
+let allFiles = [];
+let currentFileIndex = 0;
 const ip = window.location.hostname;
 const port = 5000;
 
@@ -15,83 +17,108 @@ function triggerFileUpload() {
     input.onchange = () => {
         if (input.files.length === 0) return;
 
-        const file = input.files[0];
-        const formData = new FormData();
-        formData.append("file", file);
-
-        const xhr = new XMLHttpRequest();
-		currentXHR = xhr;
-		wasCancelled = false;
-
-        xhr.upload.addEventListener("progress", (e) => {
-            if (e.lengthComputable) {
-                const percent = (e.loaded / e.total) * 100;
-                document.getElementById("progressBar").style.width = percent + "%";
-				document.getElementById("progressText").textContent = Math.round(percent) + "%";
-            }
-        });
-
-        xhr.onloadstart = () => {
-            // Show progress bar
-            document.getElementById("progressWrapper").style.display = "flex";
-			document.getElementById("cancelUploadBtn").style.display = "inline";
-            document.getElementById("progressBar").style.width = "0%";
-        };
-
-        xhr.onloadend = () => {
-            // Reset progress bar and show button again after delay
-            setTimeout(() => {
-                document.getElementById("progressWrapper").style.display = "none";
-				document.getElementById("cancelUploadBtn").style.display = "none";
-                document.getElementById("progressBar").style.width = "0%";
-            }, 1000);
-			currentXHR = null;
-        };
-
-        xhr.onreadystatechange = () => {
-            if (xhr.readyState === 4 && xhr.status >= 200 && xhr.status < 300) {
-                window.location.reload();
-            } else if (xhr.readyState === 4 && !wasCancelled) {
-				console.log("XHR Status: " + xhr.status);
-                alert("Upload failed");
-            }
-        };
-
-        const currentPath = window.location.pathname;
-		xhr.open("POST", `/upload?path=${encodeURIComponent(currentPath)}`, true);
-        xhr.send(formData);
+        allFiles = Array.from(input.files);
+        currentFileIndex = 0;
+        wasCancelled = false;
+        uploadFilesSequentially();
     };
 }
 
+function uploadFilesSequentially() {
+    if (wasCancelled) return;
+
+    if (currentFileIndex >= allFiles.length) {
+        // All files done, hide the progress UI
+        setTimeout(() => {
+            document.getElementById("progressWrapper").style.display = "none";
+            document.getElementById("cancelUploadBtn").style.display = "none";
+            document.getElementById("progressBar").style.width = "0%";
+            document.getElementById("progressText").textContent = "";
+        }, 1000);
+        window.location.reload();
+        return;
+    }
+
+    const file = allFiles[currentFileIndex];
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const xhr = new XMLHttpRequest();
+    currentXHR = xhr;
+
+    xhr.upload.addEventListener("progress", (e) => {
+        if (e.lengthComputable) {
+            const percent = (e.loaded / e.total) * 100;
+            document.getElementById("progressBar").style.width = percent + "%";
+            document.getElementById("progressText").textContent = Math.round(percent) + "%";
+        }
+    });
+
+    xhr.onloadstart = () => {
+        document.getElementById("progressWrapper").style.display = "flex";
+        document.getElementById("cancelUploadBtn").style.display = "inline";
+        document.getElementById("progressBar").style.width = "0%";
+    };
+
+    xhr.onloadend = () => {
+        currentXHR = null;
+        if (wasCancelled) return;
+    };
+
+    xhr.onreadystatechange = () => {
+        if (xhr.readyState === 4) {
+            if (wasCancelled) {
+                console.log("Upload cancelled, skipping next file.");
+                return;
+            }
+
+            if (xhr.status >= 200 && xhr.status < 300) {
+                ++currentFileIndex;
+                uploadFilesSequentially(); // Only proceed if not cancelled
+            } else {
+                console.log("XHR Status: " + xhr.status);
+                alert("Upload failed");
+            }
+        }
+    };
+
+    xhr.open("POST", `/upload?path=${encodeURIComponent(currentPath)}`, true);
+    xhr.send(formData);
+}
+
 document.getElementById("cancelUploadBtn").addEventListener("click", () => {
+    console.log("Cancel upload triggered")
+    wasCancelled = true;
+
     if (currentXHR) {
-		wasCancelled = true;
         currentXHR.abort();
         currentXHR = null;
-        document.getElementById("progressContainer").style.display = "none";
-        document.getElementById("progressBar").style.width = "0%";
-        document.getElementById("cancelUploadBtn").style.display = "none";
-        alert("Upload cancelled.");
-        setTimeout(() => {
-            window.location.reload();
-        }, 1000);
-		
-		const input = document.getElementById('fileInput');
-        const file = input.files[0];
-        const filename = file ? file.name : null;
+    }
 
-        if (filename) {
-            setTimeout(() => {
-                deleteFile(filename, true);
-                window.location.reload();
-            }, 1000);
-        } else {
+    // Hide UI
+    document.getElementById("progressWrapper").style.display = "none";
+    document.getElementById("progressBar").style.width = "0%";
+    document.getElementById("progressText").textContent = "0%";
+    document.getElementById("cancelUploadBtn").style.display = "none";
+
+    alert("Upload cancelled.");
+
+    const filename = allFiles[currentFileIndex].name;
+    allFiles = []; // Clear upload queue
+    currentFileIndex = 0;
+    console.log("Last uploaded file: " + filename);
+    if (filename) {
+        console.log("Will attempt to delete: " + filename);
+        setTimeout(() => {
+            console.log("Deleting file after cancel: " + filename);
+            deleteFile(filename, true);
             window.location.reload();
-        }
+        }, 2000);
     }
 
     // Cancel folder upload if active
-    else if (folderUploadXHRs.length > 0) {
+    if (typeof folderUploadXHRs !== 'undefined' && folderUploadXHRs.length > 0) {
         folderUploadCancelled = true;
         folderUploadXHRs.forEach(xhr => {
             try {
@@ -311,6 +338,7 @@ function deleteFile(name, uploadCancelled = false) {
 		if (!uploadCancelled) {
 			alert('Error deleting: ' + error.message);
 		}
+		window.location.reload();
 	});
 }
 

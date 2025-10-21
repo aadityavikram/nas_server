@@ -720,3 +720,61 @@ function renameItem(name) {
         alert("Error renaming: " + err.message);
     });
 }
+
+// Toggle select all
+document.getElementById("selectAll").addEventListener("change", function () {
+    const checkboxes = document.querySelectorAll(".fileCheckbox");
+    checkboxes.forEach(cb => cb.checked = this.checked);
+    toggleBulkDeleteButton();
+});
+
+// Show/hide bulk delete button
+function toggleBulkDeleteButton() {
+    const anyChecked = Array.from(document.querySelectorAll(".fileCheckbox"))
+                            .some(cb => cb.checked);
+    document.getElementById("bulkDelete-btn").style.display = anyChecked ? "inline-block" : "none";
+}
+
+// Attach change listener to individual checkboxes
+document.addEventListener("change", function (e) {
+    if (e.target.classList.contains("fileCheckbox")) {
+        toggleBulkDeleteButton();
+    }
+});
+
+// Handle bulk delete
+document.getElementById("bulkDelete-btn").addEventListener("click", function () {
+    const selected = Array.from(document.querySelectorAll(".fileCheckbox:checked"))
+                          .map(cb => cb.getAttribute("data-name"));
+
+    if (selected.length === 0) return;
+
+    console.log("Selected: " + selected);
+
+    if (!confirm(`Are you sure you want to delete ${selected.length} item(s)?`)) return;
+
+    // Send individual delete requests
+    selected.map(name => {
+        deleteFile(name, true);
+    });
+    alert("Selected items deleted.");
+
+//    Promise.all(selected.map(name => {
+//        return fetch(`/delete?file=${encodeURIComponent(currentPath + "/" + name)}`, {
+//            method: 'DELETE',
+//        });
+//    }))
+//    .then(results => {
+//        const allOk = results.every(res => res.ok);
+//        if (allOk) {
+//            alert("Selected items deleted.");
+//        } else {
+//            alert("Some deletions may have failed. " + allOk);
+//        }
+//        window.location.reload();
+//    })
+//    .catch(err => {
+//        console.error("Bulk delete error:", err);
+//        alert("Error during bulk delete.");
+//    });
+});

@@ -162,6 +162,7 @@ class FileHandler(SimpleHTTPRequestHandler):
             <table class="file-table">
                 <thead>
                     <tr>
+                        <th><input type="checkbox" id="selectAll"></th>
                         <th>Name</th>
                         <th>Type</th>
                         <th>Size</th>
@@ -175,6 +176,7 @@ class FileHandler(SimpleHTTPRequestHandler):
         if rel_path != ".":
             items += '''
                 <tr class="folder">
+                    <td></td>
                     <td><a href="../"><strong>Parent Directory</strong></a></td>
                     <td>Folder</td>
                     <td>-</td>
@@ -235,6 +237,7 @@ class FileHandler(SimpleHTTPRequestHandler):
 
             items += f'''
                 <tr>
+                    <td><input type="checkbox" class="fileCheckbox" data-name="{name}"></td>
                     <td>{name_html}</td>
                     <td>{type_str}</td>
                     <td>{size_kb}</td>

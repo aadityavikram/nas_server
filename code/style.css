@@ -398,6 +398,22 @@ main {
     background-color: #003300;
 }
 
+#bulkDelete-btn {
+    background: transparent;
+    border: none;
+	font-size: 1em;
+    color: #00ff00;
+    width: 100%;
+    padding: 8px 10px;
+    text-align: left;
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+}
+
+#bulkDelete-btn {
+    background-color: #003300;
+}
+
 .dropdown-link {
     display: block;
     color: #00ff00;

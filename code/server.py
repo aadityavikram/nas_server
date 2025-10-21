@@ -93,18 +93,22 @@ class FileHandler(SimpleHTTPRequestHandler):
         range_header = self.headers.get('Range')
         if range_header:
             # Example: Range: bytes=1000-2000
-            import re
             m = re.match(r'bytes=(\d+)-(\d*)', range_header)
             if m:
                 start = int(m.group(1))
-                end = m.group(2)
-                if end:
-                    end = int(end)
+                end_str = m.group(2)
+                if end_str:
+                    end = int(end_str)
                 else:
                     end = size - 1
-                if start >= size:
+
+                # Clamp end to file size
+                if end >= size:
+                    end = size - 1
+                if start >= size or start > end:
                     self.send_error(416, "Requested Range Not Satisfiable")
                     return None
+
                 self.send_response(206)
                 self.send_header("Content-type", ctype)
                 self.send_header("Accept-Ranges", "bytes")
@@ -218,6 +222,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                             <a href="/download-zip?folder={quote(os.path.join(rel_path, name))}" class="dropdown-link">Download ZIP</a>
                             <button class="rename-btn" onclick="renameItem('{name}')">Rename</button>
                             <button class="delete-btn" onclick="deleteFile('{name}', false)">Delete</button>
+                            <button class="share-btn" onclick="showShareLink('{name}')">Share Link</button>
                         </div>
                     </div>
                 '''
@@ -231,6 +236,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                             <button class="rename-btn" onclick="renameItem('{name}')">Rename</button>
                             <button class="delete-btn" onclick="deleteFile('{name}', false)">Delete</button>
                             <button class="detail-btn" onclick="showDetails('{name}')">Details</button>
+                            <button class="share-btn" onclick="showShareLink('{name}')">Share Link</button>
                         </div>
                     </div>
                 '''
@@ -282,10 +288,15 @@ class FileHandler(SimpleHTTPRequestHandler):
         return f
 
     def translate_path(self, path):
-        # Make sure it serves from our directory
-        path = super().translate_path(path)
-        rel_path = os.path.relpath(path, os.getcwd())
-        return os.path.join(DIRECTORY, rel_path)
+        # Remove query parameters and normalize
+        path = urlparse(path).path
+        path = os.path.normpath(unquote(path))
+        # Prevent going above the base directory
+        full_path = os.path.join(DIRECTORY, path.lstrip('/\\'))
+        if not full_path.startswith(os.path.abspath(DIRECTORY)):
+            # Deny paths outside of DIRECTORY root
+            return os.path.abspath(DIRECTORY)
+        return full_path
         
     def do_POST(self):
         parsed_url = urlparse(self.path)
@@ -627,7 +638,7 @@ class FileHandler(SimpleHTTPRequestHandler):
 
                     f.seek(start)
                     remaining = end - start + 1
-                    bufsize = 64*1024
+                    bufsize = 32*1024
                     while remaining > 0:
                         read_len = min(bufsize, remaining)
                         data = f.read(read_len)

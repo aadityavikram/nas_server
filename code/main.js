@@ -293,6 +293,74 @@ function toggleDropdownMain(event) {
     dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
 }
 
+// Toggle display of bulk dropdown based on checkbox selection
+function toggleBulkDeleteButton() {
+    const checked = document.querySelectorAll(".fileCheckbox:checked").length > 0;
+    const bulkDropdown = document.getElementById("bulkActionsDropdown");
+    bulkDropdown.style.display = checked ? "inline-block" : "none";
+}
+
+// Toggle dropdown visibility on click
+function toggleDropdownBulk(event) {
+    event.stopPropagation();
+
+    const parent = event.currentTarget.closest('.dropdown-bulk');
+    const dropdown = parent.querySelector('.dropdown-content-bulk');
+
+    // Close all other dropdowns
+    document.querySelectorAll('.dropdown-content-main, .dropdown-content, .dropdown-content-bulk').forEach(menu => {
+        if (menu !== dropdown) {
+            menu.style.display = 'none';
+        }
+    });
+
+    // Toggle this dropdown
+    dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+}
+
+// Close all dropdowns when clicking outside
+document.addEventListener("click", function () {
+    document.querySelectorAll('.dropdown-content-main, .dropdown-content, .dropdown-content-bulk').forEach(menu => {
+        menu.style.display = 'none';
+    });
+});
+
+// Toggle select all
+document.getElementById("selectAll").addEventListener("change", function () {
+    const checkboxes = document.querySelectorAll(".fileCheckbox");
+    checkboxes.forEach(cb => cb.checked = this.checked);
+    toggleBulkDeleteButton();
+});
+
+// Attach change listener to individual checkboxes
+document.addEventListener("change", function (e) {
+    if (e.target.classList.contains("fileCheckbox")) {
+        toggleBulkDeleteButton();
+    }
+});
+
+// Handle bulk delete
+document.getElementById("bulkDelete-btn").addEventListener("click", function () {
+    const selected = Array.from(document.querySelectorAll(".fileCheckbox:checked"))
+                          .map(cb => cb.getAttribute("data-name"));
+
+    if (selected.length === 0) {
+        return;
+    }
+
+    console.log("Selected: " + selected);
+
+    if (!confirm(`Are you sure you want to delete ${selected.length} item(s)?`)) {
+        return;
+    }
+
+    // Send individual delete requests
+    selected.map(name => {
+        deleteFile(name, true);
+    });
+    alert("Selected items deleted.");
+});
+
 function deleteFile(name, uploadCancelled = false) {
     const baseName = name.replace(/\/$/, '');
 
@@ -649,6 +717,12 @@ function closeDetailModal() {
     document.getElementById("detailModal").style.display = "none";
 }
 
+document.getElementById("detailModal").addEventListener("click", function(event) {
+    if (event.target === this) {
+        closeDetailModal();
+    }
+});
+
 function openGallery() {
     const mediaExtensions = /\.(png|jpe?g|gif|bmp|webp|mp4|webm|ogg)$/i;
     const links = Array.from(document.querySelectorAll('.file-table td a'));
@@ -708,6 +782,45 @@ function closeGallery() {
     document.getElementById("galleryModal").style.display = "none";
 }
 
+document.getElementById("galleryModal").addEventListener("click", function(event) {
+    if (event.target === this) {
+        closeGallery();
+    }
+});
+
+function showShareLink(name) {
+    let fullPath = currentPath;
+    if (!fullPath.endsWith("/")) {
+        fullPath += "/";
+    }
+    fullPath += encodeURIComponent(name);
+    fullPath = fullPath.substring(fullPath.indexOf("/") + 1);
+
+    const shareURL = `${window.location.origin}/${fullPath}`;
+
+    document.getElementById("shareFileName").textContent = name;
+    document.getElementById("shareLinkInput").value = shareURL;
+    document.getElementById("shareLinkModal").style.display = "flex";
+}
+
+function closeShareModal() {
+    document.getElementById("shareLinkModal").style.display = "none";
+}
+
+function copyShareLink() {
+    const input = document.getElementById("shareLinkInput");
+    input.select();
+    input.setSelectionRange(0, 99999); // for mobile
+    document.execCommand("copy");
+//    alert("Link copied to clipboard!");
+}
+
+document.getElementById("shareLinkModal").addEventListener("click", function(event) {
+    if (event.target === this) {
+        closeShareModal();
+    }
+});
+
 document.getElementById("logout-btn").addEventListener("click", async () => {
     try {
         const confirmLogout = confirm("Are you sure you want to logout?");
@@ -755,78 +868,3 @@ function renameItem(name) {
         alert("Error renaming: " + err.message);
     });
 }
-
-// Toggle select all
-document.getElementById("selectAll").addEventListener("change", function () {
-    const checkboxes = document.querySelectorAll(".fileCheckbox");
-    checkboxes.forEach(cb => cb.checked = this.checked);
-    toggleBulkDeleteButton();
-});
-
-// Show/hide bulk delete button
-function toggleBulkDeleteButton() {
-    const anyChecked = Array.from(document.querySelectorAll(".fileCheckbox"))
-                            .some(cb => cb.checked);
-    document.getElementById("bulkDelete-btn").style.display = anyChecked ? "inline-block" : "none";
-}
-
-// Attach change listener to individual checkboxes
-document.addEventListener("change", function (e) {
-    if (e.target.classList.contains("fileCheckbox")) {
-        toggleBulkDeleteButton();
-    }
-});
-
-// Handle bulk delete
-document.getElementById("bulkDelete-btn").addEventListener("click", function () {
-    const selected = Array.from(document.querySelectorAll(".fileCheckbox:checked"))
-                          .map(cb => cb.getAttribute("data-name"));
-
-    if (selected.length === 0) {
-        return;
-    }
-
-    console.log("Selected: " + selected);
-
-    if (!confirm(`Are you sure you want to delete ${selected.length} item(s)?`)) {
-        return;
-    }
-
-    // Send individual delete requests
-    selected.map(name => {
-        deleteFile(name, true);
-    });
-    alert("Selected items deleted.");
-});
-
-// Toggle display of bulk dropdown based on checkbox selection
-function toggleBulkDeleteButton() {
-    const checked = document.querySelectorAll(".fileCheckbox:checked").length > 0;
-    const bulkDropdown = document.getElementById("bulkActionsDropdown");
-    bulkDropdown.style.display = checked ? "inline-block" : "none";
-}
-
-// Toggle dropdown visibility on click
-function toggleDropdownBulk(event) {
-    event.stopPropagation();
-
-    const parent = event.currentTarget.closest('.dropdown-bulk');
-    const dropdown = parent.querySelector('.dropdown-content-bulk');
-
-    // Close all other dropdowns
-    document.querySelectorAll('.dropdown-content-main, .dropdown-content, .dropdown-content-bulk').forEach(menu => {
-        if (menu !== dropdown) {
-            menu.style.display = 'none';
-        }
-    });
-
-    // Toggle this dropdown
-    dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
-}
-
-// Close all dropdowns when clicking outside
-document.addEventListener("click", function () {
-    document.querySelectorAll('.dropdown-content-main, .dropdown-content, .dropdown-content-bulk').forEach(menu => {
-        menu.style.display = 'none';
-    });
-});

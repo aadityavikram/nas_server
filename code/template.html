@@ -122,6 +122,16 @@
         </div>
     </div>
 
+    <div id="shareLinkModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeShareModal()">X</span>
+            <h3>Shareable Link</h3>
+            <p id="shareFileName" style="word-break: break-all;"></p>
+            <input type="text" id="shareLinkInput" readonly style="width: 100%; margin: 10px 0;">
+            <button onclick="copyShareLink()">Copy to Clipboard</button>
+        </div>
+    </div>
+
     <!-- Add shadow to header on scroll -->
     <script>
         window.addEventListener("scroll", () => {

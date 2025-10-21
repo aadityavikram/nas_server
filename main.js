@@ -690,3 +690,33 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
         alert("Logout failed: " + err.message);
     }
 });
+
+function renameItem(name) {
+    const baseName = name.replace(/\/$/, ''); // strip trailing slash
+    const newName = prompt(`Rename "${baseName}" to:`);
+
+    if (!newName || newName === baseName) return;
+
+    let fullPath = currentPath;
+    if (!fullPath.endsWith("/")) fullPath += "/";
+    const oldPath = fullPath + name;
+    const newPath = fullPath + newName;
+
+    fetch(`/rename`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ old_path: oldPath, new_path: newPath })
+    })
+    .then(res => {
+        if (res.ok) {
+            alert("Renamed successfully.");
+            window.location.reload();
+        } else {
+            res.text().then(text => alert(`Rename failed: ${text}`));
+        }
+    })
+    .catch(err => {
+        console.error("Rename error:", err);
+        alert("Error renaming: " + err.message);
+    });
+}

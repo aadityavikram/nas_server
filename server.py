@@ -214,6 +214,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                         <button class="dots-btn" onclick="toggleDropdown(event)">&#8942;</button>
                         <div class="dropdown-content">
                             <a href="/download-zip?folder={quote(os.path.join(rel_path, name))}" class="dropdown-link">Download ZIP</a>
+                            <button class="rename-btn" onclick="renameItem('{name}')">Rename</button>
                             <button class="delete-btn" onclick="deleteFile('{name}', false)">Delete</button>
                         </div>
                     </div>
@@ -225,6 +226,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                         <div class="dropdown-content">
                             <a href="{quote(name)}" download class="dropdown-link">Download</a>
                             <button class="preview-btn" onclick="previewFile('{name}')">Preview</button>
+                            <button class="rename-btn" onclick="renameItem('{name}')">Rename</button>
                             <button class="delete-btn" onclick="deleteFile('{name}', false)">Delete</button>
                             <button class="detail-btn" onclick="showDetails('{name}')">Details</button>
                         </div>
@@ -375,6 +377,59 @@ class FileHandler(SimpleHTTPRequestHandler):
                 self.send_response(303)  # See Other
                 self.send_header('Location', '/')
                 self.end_headers()
+        elif parsed_url.path == "/rename":
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length)
+
+            try:
+                data = json.loads(body)
+                old_path = data.get("old_path")
+                new_path = data.get("new_path")
+
+                if not old_path or not new_path:
+                    self.send_response(400)
+                    self.end_headers()
+                    self.wfile.write(b"Missing old_path or new_path")
+                    return
+
+                # Sanitize paths
+                old_rel = os.path.normpath(unquote(old_path)).lstrip("/")
+                new_rel = os.path.normpath(unquote(new_path)).lstrip("/")
+
+                old_abs = os.path.abspath(os.path.join(DIRECTORY, old_rel))
+                new_abs = os.path.abspath(os.path.join(DIRECTORY, new_rel))
+
+                # Security check: ensure both are inside DIRECTORY
+                if not old_abs.startswith(os.path.abspath(DIRECTORY)) or not new_abs.startswith(os.path.abspath(DIRECTORY)):
+                    self.send_response(400)
+                    self.end_headers()
+                    self.wfile.write(b"Invalid path")
+                    return
+
+                # Check existence and perform rename
+                if not os.path.exists(old_abs):
+                    self.send_response(404)
+                    self.end_headers()
+                    self.wfile.write(b"Source file or folder does not exist")
+                    return
+
+                if os.path.exists(new_abs):
+                    self.send_response(409)
+                    self.end_headers()
+                    self.wfile.write(b"Target name already exists")
+                    return
+
+                os.rename(old_abs, new_abs)
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b"Renamed successfully")
+
+            except Exception as e:
+                print("Error renaming:", e)
+                traceback.print_exc()
+                self.send_response(500)
+                self.end_headers()
+                self.wfile.write(b"Rename failed")
         elif parsed_url.path == "/logout":
             threading.Thread(target=shutdown_and_kill).start()
             self.send_response(303)

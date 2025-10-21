@@ -20,13 +20,11 @@ import signal
 import time
 import threading
 
-# Directory to serve
+# Directory to serve storage
 DIRECTORY = "/nas/storage/files"
 
+# Directory to serve code
 CODE_DIRECTORY = "/nas/storage/code"
-
-# Files you want to hide from the listing
-HIDDEN_FILES = {"app.py", "server.py", "template.html", "style.css", "main.js"}
 
 PORT = 8888
 
@@ -186,7 +184,7 @@ class FileHandler(SimpleHTTPRequestHandler):
             '''
 
         for name in file_list:
-            if name in HIDDEN_FILES or name.startswith("."):
+            if name.startswith("."):
                 continue
             if search_query and search_query not in name.lower():
                 continue

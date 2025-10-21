@@ -47,13 +47,20 @@
 
     <!-- Progress bar container -->
     <div class="progress-wrapper" id="progressWrapper" style="display: none;">
-		<button id="cancelUploadBtn" class="cancel-upload-btn" title="Cancel Upload">X</button>
-		<div class="progress-container" id="progressContainer">
-			<div class="progress-bar" id="progressBar">
-				<span class="progress-text" id="progressText">0%</span>
-			</div>
-		</div>
-	</div>
+        <div class="progress-row">
+            <button id="cancelUploadBtn" class="cancel-upload-btn" title="Cancel Upload">X</button>
+
+            <!-- Group progress bar + filename -->
+            <div class="progress-info">
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-bar" id="progressBar">
+                        <span class="progress-text" id="progressText">0%</span>
+                    </div>
+                </div>
+                <div class="upload-filename" id="uploadFilename"></div>
+            </div>
+        </div>
+    </div>
 
     <main>
 		{{file_table}}

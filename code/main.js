@@ -38,12 +38,15 @@ function uploadFilesSequentially() {
             document.getElementById("cancelUploadBtn").style.display = "none";
             document.getElementById("progressBar").style.width = "0%";
             document.getElementById("progressText").textContent = "";
+            document.getElementById("uploadFilename").textContent = "";
         }, 1000);
         window.location.reload();
         return;
     }
 
     const file = allFiles[currentFileIndex];
+
+    document.getElementById("uploadFilename").textContent = `${file.name}`;
 
     const formData = new FormData();
     formData.append("file", file);
@@ -120,7 +123,7 @@ document.getElementById("cancelUploadBtn").addEventListener("click", () => {
             console.log("Deleting file after cancel: " + filename);
             deleteFile(filename, true);
             window.location.reload();
-        }, 2000);
+        }, 1000);
     }
 
     // Cancel folder upload if active

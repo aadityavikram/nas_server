@@ -76,18 +76,18 @@ document.getElementById("cancelUploadBtn").addEventListener("click", () => {
             window.location.reload();
         }, 1000);
 		
-//		const input = document.getElementById('fileInput');
-//        const file = input.files[0];
-//        const filename = file ? file.name : null;
-//
-//        if (filename) {
-//            setTimeout(() => {
-//                deleteFile(filename, true);
-//                window.location.reload();
-//            }, 1000);
-//        } else {
-//            window.location.reload();
-//        }
+		const input = document.getElementById('fileInput');
+        const file = input.files[0];
+        const filename = file ? file.name : null;
+
+        if (filename) {
+            setTimeout(() => {
+                deleteFile(filename, true);
+                window.location.reload();
+            }, 1000);
+        } else {
+            window.location.reload();
+        }
     }
 
     // Cancel folder upload if active

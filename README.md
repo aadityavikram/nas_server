@@ -14,6 +14,7 @@ Network Attached Storage on a Python server running in Ubuntu
 - Download folder as zip and delete
 - Rename file and folder
 - Delete file and folder
+- Bulk delete using checkbox
 - View file details
 - Preview Files with navigation and thumbnail preview for images and videos
 - Gallery functionality for current folder

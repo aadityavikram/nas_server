@@ -42,8 +42,8 @@ function uploadFilesSequentially() {
             document.getElementById("progressText").textContent = "";
             document.getElementById("uploadSpeedText").textContent = "";
             document.getElementById("uploadFilename").textContent = "";
+            window.location.reload();
         }, 1000);
-        window.location.reload();
         return;
     }
 
@@ -97,6 +97,8 @@ function uploadFilesSequentially() {
             }
 
             if (xhr.status >= 200 && xhr.status < 300) {
+                appendUploadedFileToList(file.name, `/download?path=${encodeURIComponent(currentPath + '/' + file.name)}`);
+
                 ++currentFileIndex;
                 uploadFilesSequentially(); // Only proceed if not cancelled
             } else {
@@ -108,6 +110,25 @@ function uploadFilesSequentially() {
 
     xhr.open("POST", `/upload?path=${encodeURIComponent(currentPath)}`, true);
     xhr.send(formData);
+}
+
+function appendUploadedFileToList(fileName, downloadUrl = "#") {
+    const container = document.getElementById("fileListContainer");
+
+    if (!container) return;
+
+    // Create a new row or card depending on your existing UI
+    const fileRow = document.createElement("div");
+    fileRow.className = "file-row"; // Adjust based on your CSS
+
+    fileRow.innerHTML = `
+        <div class="file-entry">
+            <a href="${downloadUrl}" target="_blank">${fileName}</a>
+        </div>
+    `;
+
+    // Append to the top or bottom
+    container.appendChild(fileRow);
 }
 
 // Helper to convert bytes per second to readable string

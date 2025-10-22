@@ -1071,3 +1071,41 @@ document.getElementById("cancelZipBtn").addEventListener("click", () => {
       console.error("Cancel error:", err);
     });
 });
+
+const dropZoneModal = document.getElementById("dropZone");
+
+// Show drop modal when dragging over the window
+let dragCounter = 0;
+
+window.addEventListener("dragenter", (e) => {
+    dragCounter++;
+    if (e.dataTransfer.types.includes("Files")) {
+        dropZoneModal.style.display = "flex";
+    }
+});
+
+window.addEventListener("dragleave", (e) => {
+    dragCounter--;
+    if (dragCounter === 0) {
+        dropZoneModal.style.display = "none";
+    }
+});
+
+window.addEventListener("dragover", (e) => {
+    e.preventDefault();
+});
+
+window.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dragCounter = 0;
+    dropZoneModal.style.display = "none";
+
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    if (!droppedFiles.length) return;
+
+    // Use existing upload flow
+    allFiles = droppedFiles;
+    currentFileIndex = 0;
+    wasCancelled = false;
+    uploadFilesSequentially();
+});

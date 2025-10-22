@@ -42,12 +42,19 @@ function uploadFilesSequentially() {
             document.getElementById("progressText").textContent = "";
             document.getElementById("uploadSpeedText").textContent = "";
             document.getElementById("uploadFilename").textContent = "";
+            document.getElementById("uploadedFilesContent").innerHTML = "";
+            localStorage.setItem("showUploadModal", "true");
             window.location.reload();
         }, 1000);
         return;
     }
 
     const file = allFiles[currentFileIndex];
+
+    // Show modal if it's the first file being uploaded
+    if (currentFileIndex === 0) {
+        openUploadModal();
+    }
 
     document.getElementById("uploadFilename").textContent = `Uploading: ${file.name}`;
 
@@ -97,7 +104,7 @@ function uploadFilesSequentially() {
             }
 
             if (xhr.status >= 200 && xhr.status < 300) {
-                appendUploadedFileToList(file.name, `/download?path=${encodeURIComponent(currentPath + '/' + file.name)}`);
+                appendUploadedFileToList(file.name, `${encodeURIComponent(file.name)}`);
 
                 ++currentFileIndex;
                 uploadFilesSequentially(); // Only proceed if not cancelled
@@ -112,23 +119,57 @@ function uploadFilesSequentially() {
     xhr.send(formData);
 }
 
+document.addEventListener("DOMContentLoaded", () => {
+    if (localStorage.getItem("showUploadModal") === "true") {
+        openUploadModal();
+
+        // Rebuild uploaded files list
+        const uploadedFiles = JSON.parse(localStorage.getItem("uploadedFiles") || "[]");
+        const container = document.getElementById("uploadedFilesContent");
+
+        uploadedFiles.forEach(({ fileName, downloadUrl }) => {
+            const fileBox = document.createElement("div");
+            fileBox.className = "upload-file-box";
+
+            fileBox.innerHTML = `
+                <a href="${downloadUrl}" target="_blank" title="${fileName}">
+                    <div class="file-thumb"></div>
+                    <div class="file-name">${fileName}</div>
+                </a>
+            `;
+
+            container.appendChild(fileBox);
+        });
+
+        // Optional: Clear the modal flag but keep file list
+        localStorage.removeItem("showUploadModal");
+
+        // Optional: Clear file list after display (or do it on modal close)
+         localStorage.removeItem("uploadedFiles");
+    }
+});
+
 function appendUploadedFileToList(fileName, downloadUrl = "#") {
-    const container = document.getElementById("fileListContainer");
+    const container = document.getElementById("uploadedFilesContent");
+    if (!container) {
+        return;
+    }
 
-    if (!container) return;
+    const fileBox = document.createElement("div");
+    fileBox.className = "upload-file-box";
 
-    // Create a new row or card depending on your existing UI
-    const fileRow = document.createElement("div");
-    fileRow.className = "file-row"; // Adjust based on your CSS
-
-    fileRow.innerHTML = `
-        <div class="file-entry">
-            <a href="${downloadUrl}" target="_blank">${fileName}</a>
-        </div>
+    fileBox.innerHTML = `
+        <a href="${downloadUrl}" target="_blank" title="${fileName}">
+            <div class="file-thumb"></div>
+            <div class="file-name">${fileName}</div>
+        </a>
     `;
 
-    // Append to the top or bottom
-    container.appendChild(fileRow);
+    container.appendChild(fileBox);
+
+    const uploadedFiles = JSON.parse(localStorage.getItem("uploadedFiles") || "[]");
+    uploadedFiles.push({ fileName, downloadUrl });
+    localStorage.setItem("uploadedFiles", JSON.stringify(uploadedFiles));
 }
 
 // Helper to convert bytes per second to readable string
@@ -153,6 +194,9 @@ document.getElementById("cancelUploadBtn").addEventListener("click", () => {
         currentXHR.abort();
         currentXHR = null;
     }
+
+    localStorage.removeItem("uploadedFiles");
+    localStorage.removeItem("showUploadModal");
 
     // Hide UI
     document.getElementById("progressWrapper").style.display = "none";
@@ -869,6 +913,16 @@ document.getElementById("shareLinkModal").addEventListener("click", function(eve
         closeShareModal();
     }
 });
+
+function openUploadModal() {
+    const modal = document.getElementById("uploadModal");
+    modal.style.display = "block";
+}
+
+function closeUploadModal() {
+    const modal = document.getElementById("uploadModal");
+    modal.style.display = "none";
+}
 
 document.getElementById("logout-btn").addEventListener("click", async () => {
     try {

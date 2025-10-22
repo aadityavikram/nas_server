@@ -152,6 +152,14 @@
         </div>
     </div>
 
+    <div id="uploadModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <button class="close-btn-modal" onclick="closeUploadModal()">X</button>
+            <h2>Uploaded Files</h2>
+            <div id="uploadedFilesContent" class="gallery-grid"></div>
+        </div>
+    </div>
+
     <!-- Add shadow to header on scroll -->
     <script>
         window.addEventListener("scroll", () => {

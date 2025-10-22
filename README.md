@@ -10,6 +10,7 @@ Network Attached Storage on a Python server running in Ubuntu
 - Subfolder access with function to go back to previous directory
 - Create new folder, upload file and folder in current directory
 - Progress bar on upload file
+- Drag and Drop upload
 - Link Sharing
 - Download and delete file
 - Download folder as zip and delete folder
@@ -79,6 +80,10 @@ Network Attached Storage on a Python server running in Ubuntu
 ## Upload Progress Bar
 
 ![Upload_Progress_Bar](assets/Upload_Progress_Bar.png)
+
+## Drag and Drop Upload
+
+![Drag_and_Drop_Upload](assets/Drag_and_Drop_Upload.png)
 
 ## Link Sharing
 

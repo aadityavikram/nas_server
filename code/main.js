@@ -40,6 +40,7 @@ function uploadFilesSequentially() {
             document.getElementById("cancelUploadBtn").style.display = "none";
             document.getElementById("progressBar").style.width = "0%";
             document.getElementById("progressText").textContent = "";
+            document.getElementById("uploadSpeedText").textContent = "";
             document.getElementById("uploadFilename").textContent = "";
         }, 1000);
         window.location.reload();
@@ -56,11 +57,21 @@ function uploadFilesSequentially() {
     const xhr = new XMLHttpRequest();
     currentXHR = xhr;
 
+    uploadStartTime = Date.now();
+
     xhr.upload.addEventListener("progress", (e) => {
         if (e.lengthComputable) {
             const percent = (e.loaded / e.total) * 100;
             document.getElementById("progressBar").style.width = percent + "%";
             document.getElementById("progressText").textContent = Math.round(percent) + "%";
+
+            // Calculate speed
+            const now = Date.now();
+            const elapsedSeconds = (now - uploadStartTime) / 1000;
+            const speedBps = e.loaded / elapsedSeconds;
+            const speedText = formatSpeed(speedBps);
+
+            document.getElementById("uploadSpeedText").textContent = speedText;
         }
     });
 
@@ -68,6 +79,7 @@ function uploadFilesSequentially() {
         document.getElementById("progressWrapper").style.display = "flex";
         document.getElementById("cancelUploadBtn").style.display = "inline";
         document.getElementById("progressBar").style.width = "0%";
+        document.getElementById("uploadSpeedText").textContent = "";
     };
 
     xhr.onloadend = () => {
@@ -96,6 +108,20 @@ function uploadFilesSequentially() {
 
     xhr.open("POST", `/upload?path=${encodeURIComponent(currentPath)}`, true);
     xhr.send(formData);
+}
+
+// Helper to convert bytes per second to readable string
+function formatSpeed(bytesPerSecond) {
+    const kb = 1024;
+    const mb = kb * 1024;
+
+    if (bytesPerSecond >= mb) {
+        return (bytesPerSecond / mb).toFixed(2) + " MB/s";
+    } else if (bytesPerSecond >= kb) {
+        return (bytesPerSecond / kb).toFixed(2) + " KB/s";
+    } else {
+        return bytesPerSecond.toFixed(2) + " B/s";
+    }
 }
 
 document.getElementById("cancelUploadBtn").addEventListener("click", () => {

@@ -270,16 +270,24 @@ main {
     transition: width 0.2s ease;
 }
 
-.progress-text {
+.progress-text-wrapper {
     position: absolute;
     right: 10px;
     top: 50%;
     transform: translateY(-50%);
+    display: flex;
+    gap: 10px; /* space between % and speed */
     font-size: 0.85em;
     color: white;
     font-weight: bold;
     pointer-events: none;
-	z-index: 1;
+    z-index: 1;
+}
+
+.upload-speed-text,
+.progress-text {
+    white-space: nowrap;
+    /* Removed: position, top, right, transform */
 }
 
 .progress-wrapper {

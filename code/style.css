@@ -387,6 +387,21 @@ main {
     transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
+.dropzone-modal.folder-drag {
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.folder-warning {
+    display: none;
+    margin-top: 20px;
+    color: red;
+    font-weight: bold;
+}
+
+.dropzone-modal.folder-drag .folder-warning {
+    display: block;
+}
+
 .cancel-upload-btn {
     background: transparent;
     color: red;

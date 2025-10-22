@@ -861,8 +861,8 @@ function openGallery() {
 
         thumb.title = fileName;
         thumb.addEventListener("click", () => {
-            const fileUrl = encodeURI(`/${fileName}`);
-            window.open(fileUrl, '_blank');
+            console.log("Href: " + href);
+            window.open(href, '_blank');
         });
 
         gallery.appendChild(thumb);
@@ -1073,14 +1073,25 @@ document.getElementById("cancelZipBtn").addEventListener("click", () => {
 });
 
 const dropZoneModal = document.getElementById("dropZone");
+const folderWarning = document.querySelector(".folder-warning");
 
-// Show drop modal when dragging over the window
 let dragCounter = 0;
 
 window.addEventListener("dragenter", (e) => {
     dragCounter++;
     if (e.dataTransfer.types.includes("Files")) {
         dropZoneModal.style.display = "flex";
+
+        const hasFolder = Array.from(e.dataTransfer.items).some(item => {
+            const entry = item.webkitGetAsEntry?.();
+            return entry && entry.isDirectory;
+        });
+
+        if (hasFolder) {
+            dropZoneModal.classList.add("folder-drag");
+        } else {
+            dropZoneModal.classList.remove("folder-drag");
+        }
     }
 });
 
@@ -1088,6 +1099,7 @@ window.addEventListener("dragleave", (e) => {
     dragCounter--;
     if (dragCounter === 0) {
         dropZoneModal.style.display = "none";
+        dropZoneModal.classList.remove("folder-drag");
     }
 });
 
@@ -1099,6 +1111,20 @@ window.addEventListener("drop", (e) => {
     e.preventDefault();
     dragCounter = 0;
     dropZoneModal.style.display = "none";
+    dropZoneModal.classList.remove("folder-drag");
+
+    const items = Array.from(e.dataTransfer.items);
+
+    const hasFolder = items.some(item => {
+        const entry = item.webkitGetAsEntry?.();
+        return entry && entry.isDirectory;
+    });
+
+    if (hasFolder) {
+        // Do not proceed with upload
+        alert("Folder upload via drag-and-drop is not supported.");
+        return;
+    }
 
     const droppedFiles = Array.from(e.dataTransfer.files);
     if (!droppedFiles.length) return;

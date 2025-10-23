@@ -5,6 +5,8 @@ Network Attached Storage on a Python server running in Ubuntu
 ## Functionalities
 
 - Launcher GUI
+- Password locked profiles
+- Profile add / remove
 - File access
 - Search in current directory
 - Subfolder access with function to go back to previous directory
@@ -60,6 +62,23 @@ Network Attached Storage on a Python server running in Ubuntu
 ## NAS Launcher
 
 ![Nas_Launcher](assets/Nas_Launcher.png)
+
+## Profile Selection
+
+![Profile_Selection](assets/Profile_Selection.png)
+
+## Profile Login
+
+![Profile_Login](assets/Profile_Login.png)
+
+## Profile Addition
+
+![Profile_Add](assets/Profile_Add.png)
+
+## Profile Removal
+
+![Profile_Remove](assets/Profile_Remove.png)
+![Profile_Remove_Confirmation](assets/Profile_Remove_Confirmation.png)
 
 ## Root Directory
 

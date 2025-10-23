@@ -22,7 +22,9 @@ import threading
 import uuid
 
 # Directory to serve storage
-DIRECTORY = "/nas/storage/files"
+PROFILE_ROOT = "/nas/storage/profiles"
+
+PROFILE_PASSWORDS_FILE = "/nas/storage/code/profiles.json"
 
 # Directory to serve code
 CODE_DIRECTORY = "/nas/storage/code"
@@ -34,6 +36,16 @@ zip_paths = {}       # zip file path
 cancelled_jobs = set()
 
 TEMP_ZIP_DIRECTORY = "/nas/storage/temp/zips"
+
+def load_profile_passwords():
+    global PROFILE_PASSWORDS
+    try:
+        with open(PROFILE_PASSWORDS_FILE, "r", encoding="utf-8") as f:
+            PROFILE_PASSWORDS = json.load(f)
+    except FileNotFoundError:
+        PROFILE_PASSWORDS = {}
+    except json.JSONDecodeError:
+        PROFILE_PASSWORDS = {}
 
 def run_zip_job(abs_path, job_id):
     try:
@@ -129,6 +141,103 @@ def kill_process_on_port(port):
 
 class FileHandler(SimpleHTTPRequestHandler):
 
+    def get_profile_dir(self):
+        # Get profile from cookie
+        cookies = self.headers.get("Cookie", "")
+        profile = None
+        for part in cookies.split(";"):
+            if part.strip().startswith("profile="):
+                profile = part.strip().split("=")[1]
+                break
+
+        if not profile:
+            return None
+
+        profile_path = os.path.join(PROFILE_ROOT, profile)
+        if not os.path.isdir(profile_path):
+            return None
+
+        return profile_path
+
+    def send_profile_selection(self):
+        try:
+            profile_dirs = [d for d in os.listdir(PROFILE_ROOT)
+                            if os.path.isdir(os.path.join(PROFILE_ROOT, d))]
+        except Exception as e:
+            self.send_error(500, "Failed to read profiles")
+            return
+
+        template_path = os.path.join(CODE_DIRECTORY, "profile.html")
+        try:
+            with open(template_path, "r", encoding="utf-8") as f:
+                html = f.read()
+        except FileNotFoundError:
+            self.send_error(500, "Profile selection template not found")
+            return
+
+        # Build list of profiles
+        profiles_html = ""
+        for prof in profile_dirs:
+            profiles_html += f'<a href="/?set_profile={quote(prof)}">{prof}</a>\n'
+
+        # Insert into template
+        html = html.replace("{{profiles}}", profiles_html)
+
+        encoded = html.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-type", "text/html")
+        self.send_header("Content-Length", str(len(encoded)))
+        self.end_headers()
+        self.wfile.write(encoded)
+
+    def send_add_profile_form(self, error_msg=None):
+        template_path = os.path.join(CODE_DIRECTORY, "profileAdd.html")
+        try:
+            with open(template_path, "r", encoding="utf-8") as f:
+                html = f.read()
+        except FileNotFoundError:
+            self.send_error(500, "Add profile template not found")
+            return
+
+        if error_msg:
+            error_html = f'<div class="error">{error_msg}</div>'
+        else:
+            error_html = ''
+
+        html = html.replace("{{error_msg}}", error_html)
+
+        encoded = html.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-type", "text/html")
+        self.send_header("Content-Length", str(len(encoded)))
+        self.end_headers()
+        self.wfile.write(encoded)
+
+    def send_password_form(self, profile, error_msg=None):
+        template_path = os.path.join(CODE_DIRECTORY, "login.html")
+        try:
+            with open(template_path, "r", encoding="utf-8") as f:
+                html = f.read()
+        except FileNotFoundError:
+            self.send_error(500, "Login template not found")
+            return
+
+        # Simple replacement
+        html = html.replace("{{profile}}", profile)
+        html = html.replace("{{error_msg}}", error_msg or "")
+        if error_msg:
+            html = html.replace("{% if error_msg %}", "").replace("{% endif %}", "")
+        else:
+            # Remove the error block if no error
+            html = html.replace("{% if error_msg %}", "<!--").replace("{% endif %}", "-->")
+
+        encoded = html.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-type", "text/html")
+        self.send_header("Content-Length", str(len(encoded)))
+        self.end_headers()
+        self.wfile.write(encoded)
+
     def send_head_with_range(self):
         """Serve a GET request supporting Range header for partial content."""
         path = self.translate_path(self.path)
@@ -198,7 +307,7 @@ class FileHandler(SimpleHTTPRequestHandler):
         file_list.sort()
         items = ""
         
-        rel_path = os.path.relpath(path, DIRECTORY)
+        rel_path = os.path.relpath(path, self.get_profile_dir())
 
         # Normalize rel_path for URL
         url_rel_path = rel_path.replace(os.sep, '/')
@@ -338,18 +447,126 @@ class FileHandler(SimpleHTTPRequestHandler):
         return f
 
     def translate_path(self, path):
-        # Remove query parameters and normalize
         path = urlparse(path).path
-        path = os.path.normpath(unquote(path))
-        # Prevent going above the base directory
-        full_path = os.path.join(DIRECTORY, path.lstrip('/\\'))
-        if not full_path.startswith(os.path.abspath(DIRECTORY)):
-            # Deny paths outside of DIRECTORY root
-            return os.path.abspath(DIRECTORY)
-        return full_path
+        path = os.path.normpath(unquote(path)).lstrip("/\\")
+        full_path = os.path.join(self.get_profile_dir(), path)
+        abs_base = os.path.abspath(self.get_profile_dir())
+        abs_path = os.path.abspath(full_path)
+
+        if not abs_path.startswith(abs_base):
+            return abs_base
+
+        return abs_path
         
     def do_POST(self):
         parsed_url = urlparse(self.path)
+
+        if parsed_url.path == "/login":
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length).decode('utf-8')
+            params = parse_qs(post_data)
+
+            profile = params.get("profile", [None])[0]
+            password = params.get("password", [None])[0]
+
+            if not profile or not password:
+                self.send_error(400, "Missing profile or password")
+                return
+
+            expected_password = PROFILE_PASSWORDS.get(profile)
+            if expected_password is not None and password == expected_password:
+                # Password is correct - set authenticated cookie and redirect to /
+                self.send_response(302)
+                self.send_header("Set-Cookie", f"profile={profile}; Path=/")
+                self.send_header("Set-Cookie", "authenticated=yes; Path=/")
+                self.send_header("Location", "/")
+                self.end_headers()
+            else:
+                # Wrong password - show password form with error
+                self.send_password_form(profile, error_msg="Incorrect password")
+            return
+
+        if parsed_url.path == "/add-profile":
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length).decode('utf-8')
+            post_params = parse_qs(post_data)
+
+            profile_name = post_params.get("profileName", [""])[0].strip()
+            profile_password = post_params.get("profilePassword", [None])[0]
+
+            if not profile_name or not profile_password:
+                return self.send_add_profile_form(error_msg="Profile name and password are required.")
+
+            if not profile_name or "/" in profile_name or "\\" in profile_name:
+                self.send_add_profile_form(error_msg="Invalid profile name.")
+                return
+
+            profile_path = os.path.join(PROFILE_ROOT, profile_name)
+
+            if os.path.exists(profile_path):
+                self.send_add_profile_form(error_msg="Profile already exists.")
+                return
+
+            try:
+                os.mkdir(profile_path)
+            except Exception as e:
+                self.send_add_profile_form(error_msg=f"Failed to create profile: {e}")
+                return
+
+            # Update the password dictionary and save back
+            PROFILE_PASSWORDS[profile_name] = profile_password
+            try:
+                with open(PROFILE_PASSWORDS_FILE, "w", encoding="utf-8") as f:
+                    json.dump(PROFILE_PASSWORDS, f, indent=2)
+            except Exception as e:
+                return self.send_add_profile_form(error_msg="Failed to save profile password.")
+
+            # Redirect to profile selection after creation
+            self.send_response(302)
+            self.send_header("Location", "/switch")
+            self.end_headers()
+            return
+
+        if parsed_url.path == "/remove-profile":
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length).decode('utf-8')
+            post_params = parse_qs(post_data)
+
+            if "profile" not in post_params or "password" not in post_params:
+                self.send_error(400, "Profile or password not specified")
+                return
+
+            profile_to_remove = post_params["profile"][0]
+            password = post_params["password"][0]
+            profile_path = os.path.join(PROFILE_ROOT, profile_to_remove)
+
+            if not os.path.isdir(profile_path):
+                self.send_error(404, "Profile not found")
+                return
+
+            expected_password = PROFILE_PASSWORDS.get(profile_to_remove)
+
+            # Check password if a password is required
+            if expected_password is not None:
+                if password != expected_password:
+                    # Redirect back to confirmation with error
+                    self.send_response(302)
+                    self.send_header("Location", f"/confirm-remove?profile={quote(profile_to_remove)}&error=Invalid+password")
+                    self.end_headers()
+                    return
+
+            try:
+                shutil.rmtree(profile_path)
+            except Exception as e:
+                self.send_error(500, f"Failed to remove profile: {e}")
+                return
+
+            # Redirect back to profile selection page after removal
+            self.send_response(302)
+            self.send_header("Location", "/switch")
+            self.end_headers()
+            return
+
         if parsed_url.path == "/create-folder":
             query = parse_qs(parsed_url.query)
             folder_name = query.get("name", [None])[0]
@@ -362,7 +579,7 @@ class FileHandler(SimpleHTTPRequestHandler):
 
             # Sanitize and create folder
             rel_path = os.path.normpath(unquote(folder_name)).lstrip("/")
-            file_path = os.path.abspath(os.path.join(DIRECTORY, rel_path))
+            file_path = os.path.abspath(os.path.join(self.get_profile_dir(), rel_path))
             print("Path of new folder: ", file_path)
 
             try:
@@ -382,6 +599,10 @@ class FileHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(b"Failed to create folder")
                 
         elif parsed_url.path == "/upload":
+            self.profile_dir = self.get_profile_dir()
+            if not self.profile_dir:
+                self.send_error(403, "Profile not selected")
+                return
             query = parse_qs(parsed_url.query)
             ctype, pdict = cgi.parse_header(self.headers.get('Content-Type'))
             if ctype == 'multipart/form-data':
@@ -414,10 +635,10 @@ class FileHandler(SimpleHTTPRequestHandler):
                 safe_rel_path = os.path.normpath(unquote(upload_path)).lstrip("/")
 
                 # Prevent escaping out of DIRECTORY
-                abs_upload_dir = os.path.abspath(os.path.join(DIRECTORY, safe_rel_path))
+                abs_upload_dir = os.path.abspath(os.path.join(self.get_profile_dir(), safe_rel_path))
 
                 # Make sure it's still inside the DIRECTORY
-                if not abs_upload_dir.startswith(os.path.abspath(DIRECTORY)):
+                if not abs_upload_dir.startswith(os.path.abspath(self.get_profile_dir())):
                     self.send_error(400, "Invalid upload path")
                     return
 
@@ -460,11 +681,11 @@ class FileHandler(SimpleHTTPRequestHandler):
                 old_rel = os.path.normpath(unquote(old_path)).lstrip("/")
                 new_rel = os.path.normpath(unquote(new_path)).lstrip("/")
 
-                old_abs = os.path.abspath(os.path.join(DIRECTORY, old_rel))
-                new_abs = os.path.abspath(os.path.join(DIRECTORY, new_rel))
+                old_abs = os.path.abspath(os.path.join(self.get_profile_dir(), old_rel))
+                new_abs = os.path.abspath(os.path.join(self.get_profile_dir(), new_rel))
 
                 # Security check: ensure both are inside DIRECTORY
-                if not old_abs.startswith(os.path.abspath(DIRECTORY)) or not new_abs.startswith(os.path.abspath(DIRECTORY)):
+                if not old_abs.startswith(os.path.abspath(self.get_profile_dir())) or not new_abs.startswith(os.path.abspath(self.get_profile_dir())):
                     self.send_response(400)
                     self.end_headers()
                     self.wfile.write(b"Invalid path")
@@ -497,6 +718,7 @@ class FileHandler(SimpleHTTPRequestHandler):
         elif parsed_url.path == "/logout":
             threading.Thread(target=shutdown_and_kill).start()
             self.send_response(303)
+            self.send_header("Set-Cookie", "profile=; Max-Age=0; Path=/")
             self.end_headers()
             return
         else:
@@ -516,12 +738,12 @@ class FileHandler(SimpleHTTPRequestHandler):
                 return
 
             rel_path = os.path.normpath(unquote(filename)).lstrip("/")
-            file_path = os.path.abspath(os.path.join(DIRECTORY, rel_path))
+            file_path = os.path.abspath(os.path.join(self.get_profile_dir(), rel_path))
             
             print(f"Request to delete: {rel_path}")
             print(f"Resolved path: {file_path}")
 
-            if not file_path.startswith(os.path.abspath(DIRECTORY)):
+            if not file_path.startswith(os.path.abspath(self.get_profile_dir())):
                 self.send_response(400)
                 self.end_headers()
                 self.wfile.write(b"Invalid file path")
@@ -534,7 +756,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                 return
 
             # Prevent deletion of root directory
-            if os.path.abspath(file_path) == os.path.abspath(DIRECTORY):
+            if os.path.abspath(file_path) == os.path.abspath(self.get_profile_dir()):
                 self.send_response(400)
                 self.end_headers()
                 self.wfile.write(b"Cannot delete root directory")
@@ -568,9 +790,9 @@ class FileHandler(SimpleHTTPRequestHandler):
     def handle_details(self, parsed):
         params = parse_qs(parsed.query)
         file_path = params.get("path", [""])[0]
-        abs_path = os.path.normpath(os.path.join(DIRECTORY, file_path.lstrip("/")))
+        abs_path = os.path.normpath(os.path.join(self.get_profile_dir(), file_path.lstrip("/")))
 
-        if not abs_path.startswith(DIRECTORY) or not os.path.exists(abs_path):
+        if not abs_path.startswith(self.get_profile_dir()) or not os.path.exists(abs_path):
             self.send_error(404, "Not found")
             return
 
@@ -598,6 +820,130 @@ class FileHandler(SimpleHTTPRequestHandler):
             
     def do_GET(self):
         parsed_url = urlparse(self.path)
+        qs = parse_qs(parsed_url.query)
+
+        if parsed_url.path == "/remove-profile":
+            # Read profiles again
+            try:
+                profile_dirs = [d for d in os.listdir(PROFILE_ROOT)
+                                if os.path.isdir(os.path.join(PROFILE_ROOT, d))]
+            except Exception as e:
+                self.send_error(500, "Failed to read profiles")
+                return
+
+            # Build HTML to let user select which profile to delete
+            profiles_html = ""
+            for prof in profile_dirs:
+                profiles_html += f'<li><a href="/confirm-remove?profile={quote(prof)}">{prof}</a></li>'
+
+            template_path = os.path.join(CODE_DIRECTORY, "profileRemove.html")
+            with open(template_path, "r", encoding="utf-8") as f:
+                template = f.read()
+
+            # Replace placeholder with actual profiles HTML
+            html = template.replace("{{profiles_html}}", profiles_html)
+
+            encoded = html.encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html")
+            self.send_header("Content-Length", str(len(encoded)))
+            self.end_headers()
+            self.wfile.write(encoded)
+            return
+
+        if parsed_url.path == "/confirm-remove":
+            # Confirm removal page for the selected profile
+            if "profile" not in qs:
+                self.send_error(400, "Profile not specified")
+                return
+
+            profile_to_remove = qs["profile"][0]
+            profile_path = os.path.join(PROFILE_ROOT, profile_to_remove)
+
+            if not os.path.isdir(profile_path):
+                self.send_error(404, "Profile not found")
+                return
+
+            # Get error message from query string (if any)
+            error_msg = qs.get("error", [None])[0]
+            error_html = f'<p style="color:#ff4444; font-weight:bold;">{error_msg}</p>' if error_msg else ""
+
+            template_path = os.path.join(CODE_DIRECTORY, "profileRemoveConfirm.html")
+            try:
+                with open(template_path, "r", encoding="utf-8") as f:
+                    html = f.read()
+            except FileNotFoundError:
+                self.send_error(500, "Profile selection template not found")
+                return
+
+            html = html.replace("{{profile_to_remove}}", profile_to_remove)
+            html = html.replace("{{error_html}}", error_html)
+
+            encoded = html.encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html")
+            self.send_header("Content-Length", str(len(encoded)))
+            self.end_headers()
+            self.wfile.write(encoded)
+            return
+
+        if parsed_url.path == "/switch":
+            self.send_response(302)
+            self.send_header("Set-Cookie", "profile=; Max-Age=0; Path=/")  # Clear cookie
+            self.send_header("Set-Cookie", "authenticated=; Max-Age=0; Path=/")  # Clear auth cookie
+            self.send_header("Location", "/")
+            self.end_headers()
+            return
+
+        if parsed_url.path == "/add-profile":
+            self.send_add_profile_form()
+            return
+
+        if "set_profile" in qs:
+            new_profile = qs["set_profile"][0]
+            profile_path = os.path.join(PROFILE_ROOT, new_profile)
+            if os.path.isdir(profile_path):
+                # Set profile cookie but not authenticated yet
+                self.send_response(302)
+                self.send_header("Set-Cookie", f"profile={new_profile}; Path=/")
+                self.send_header("Set-Cookie", "authenticated=; Max-Age=0; Path=/")  # Clear auth
+                self.send_header("Location", "/")
+                self.end_headers()
+            else:
+                self.send_error(403, "Invalid profile name")
+            return
+
+        cookies = self.headers.get("Cookie", "")
+        profile = None
+        authenticated = False
+        for part in cookies.split(";"):
+            part = part.strip()
+            if part.startswith("profile="):
+                profile = part.split("=")[1]
+            if part.startswith("authenticated="):
+                if part.split("=")[1] == "yes":
+                    authenticated = True
+
+        if not profile:
+            return self.send_profile_selection()
+
+        # Check if profile requires password
+        profile_password = PROFILE_PASSWORDS.get(profile)
+
+        if profile_password is None:
+            # No password required — treat as authenticated
+            authenticated = True
+
+        elif not authenticated:
+            # User not authenticated for the profile, show password form
+            return self.send_password_form(profile)
+
+        self.profile_dir = self.get_profile_dir()
+        if not self.profile_dir:
+            return self.send_profile_selection()
+
+        self.base_path = self.profile_dir
+
         # Serve static files from /nas/storage/code (e.g., style.css, main.js)
         if parsed_url.path.startswith("/static/"):
             file_name = parsed_url.path[len("/static/"):]
@@ -635,9 +981,9 @@ class FileHandler(SimpleHTTPRequestHandler):
                   return
 
                 rel_path = os.path.normpath(unquote(folder)).lstrip("/")
-                abs_path = os.path.abspath(os.path.join(DIRECTORY, rel_path))
+                abs_path = os.path.abspath(os.path.join(self.get_profile_dir(), rel_path))
 
-                if not abs_path.startswith(os.path.abspath(DIRECTORY)) or not os.path.isdir(abs_path):
+                if not abs_path.startswith(os.path.abspath(self.get_profile_dir())) or not os.path.isdir(abs_path):
                   self.send_response(400)
                   self.end_headers()
                   self.wfile.write(b"Invalid folder path")
@@ -813,10 +1159,10 @@ class ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
     daemon_threads = True  # threads exit when main thread exits
 
 if __name__ == "__main__":
-    os.makedirs(DIRECTORY, exist_ok=True)
+    os.makedirs(PROFILE_ROOT, exist_ok=True)
     os.makedirs(CODE_DIRECTORY, exist_ok=True)
-    os.chdir(DIRECTORY)
-    server_address = ("", 8888)
+    load_profile_passwords()
+    server_address = ("", PORT)
     httpd = ThreadedHTTPServer(server_address, FileHandler)
-    print("Serving Server on port 8888...")
+    print(f"Serving on port {PORT}...")
     httpd.serve_forever()

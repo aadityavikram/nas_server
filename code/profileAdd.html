@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Add New Profile</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+      html, body {
+          height: 100%;
+          margin: 0;
+          padding: 0;
+          font-family: 'Share Tech Mono', monospace;
+          background-color: black;
+          color: #00ff00;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          text-align: center;
+      }
+      h2 {
+          color: #00ff00;
+          text-shadow: 0 0 8px #00ff00;
+          margin-bottom: 20px;
+          font-size: 2em;
+      }
+      form {
+          border: 1px solid #00ff00;
+          padding: 20px 40px;
+          border-radius: 8px;
+          background-color: rgba(0, 0, 0, 0.8);
+          box-shadow: 0 0 20px #00ff00;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+      }
+      input[type="text"] {
+          background-color: black;
+          border: 1px solid #00ff00;
+          color: #00ff00;
+          padding: 8px;
+          font-family: 'Share Tech Mono', monospace;
+          outline: none;
+      }
+      input[type="text"]:focus {
+          box-shadow: 0 0 5px #00ff00;
+      }
+      input[type="password"] {
+          background-color: black;
+          border: 1px solid #00ff00;
+          color: #00ff00;
+          padding: 8px;
+          font-family: 'Share Tech Mono', monospace;
+          outline: none;
+      }
+      input[type="password"]:focus {
+          box-shadow: 0 0 5px #00ff00;
+      }
+      input[type="submit"], .back-btn {
+          background-color: black;
+          border: 1px solid #00ff00;
+          color: #00ff00;
+          padding: 8px;
+          cursor: pointer;
+          font-family: 'Share Tech Mono', monospace;
+          border-radius: 5px;
+          transition: all 0.3s ease;
+      }
+      input[type="submit"]:hover, .back-btn:hover {
+          background-color: #00ff00;
+          color: black;
+      }
+      .error {
+          color: red;
+          margin-bottom: 10px;
+      }
+      .back-btn {
+          text-decoration: none;
+          display: inline-block;
+          margin-top: 15px;
+          text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ERROR MSG PLACEHOLDER -->
+    {{error_msg}}
+    <h2>Add New Profile</h2>
+    <form method="POST" action="/add-profile">
+      <label for="profileName">Profile Name:</label>
+      <input type="text" id="profileName" name="profileName" required autofocus>
+      <label for="profilePassword">Password:</label>
+      <input type="password" id="profilePassword" name="profilePassword" required>
+      <input type="submit" value="Create Profile">
+    </form>
+    <a href="/switch" class="back-btn">Back</a>
+  </body>
+</html>

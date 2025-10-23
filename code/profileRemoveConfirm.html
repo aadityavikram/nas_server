@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Confirm Remove Profile</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+      body {
+          background-color: black;
+          color: #ff3333;
+          font-family: 'Share Tech Mono', monospace;
+          text-align: center;
+          padding: 30px;
+      }
+      button {
+          font-size: 1em;
+          margin: 10px;
+          padding: 10px 25px;
+          border-radius: 6px;
+          border: none;
+          cursor: pointer;
+          font-family: 'Share Tech Mono', monospace;
+          transition: all 0.3s ease;
+      }
+      button.confirm {
+          background-color: #ff3333;
+          color: black;
+      }
+      button.confirm:hover {
+          background-color: #ff0000;
+      }
+      button.cancel {
+          background-color: #444;
+          color: #ccc;
+      }
+      button.cancel:hover {
+          background-color: #666;
+      }
+      input[type="password"] {
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 1em;
+          padding: 8px;
+          margin-top: 15px;
+          border-radius: 6px;
+          border: 1px solid #ff3333;
+          background-color: black;
+          color: #ff3333;
+          outline: none;
+          width: 250px;
+          transition: box-shadow 0.3s ease;
+      }
+      input[type="password"]:focus {
+          box-shadow: 0 0 5px #ff3333;
+      }
+      label {
+          display: block;
+          margin-top: 20px;
+          font-size: 1em;
+          color: #ff6666;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Are you sure you want to remove the profile: {{profile_to_remove}}</h2>
+    {{error_html}}
+    <p style="font-size: 1.2em; color:#ff4444;">All files related to this profile will be deleted permanently</p>
+    <form method="POST" action="/remove-profile">
+      <input type="hidden" name="profile" value="{{profile_to_remove}}">
+
+      <label for="password">Enter password to confirm deletion:</label>
+      <input type="password" id="password" name="password" required autocomplete="off">
+
+      <button type="submit" class="confirm">Yes, Remove</button>
+      <button type="button" onclick="window.location.href='/remove-profile'" class="cancel">Cancel</button>
+    </form>
+  </body>
+</html>

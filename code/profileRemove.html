@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Remove Profile</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        body {
+            background-color: black;
+            color: #00ff00;
+            font-family: 'Share Tech Mono', monospace;
+            text-align: center;
+            padding: 30px;
+        }
+        a {
+            color: #00ff00;
+            text-decoration: none;
+            font-size: 0.9em;
+            display: block;
+            margin: 10px auto;
+            width: 200px;
+            border: 1px solid #00ff00;
+            padding: 10px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        a:hover {
+            background-color: #ff3333;
+            color: black;
+            transform: scale(1.05);
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+<h2>Select Profile to Remove</h2>
+<ul>
+    {{profiles_html}}
+</ul>
+<a href="/switch" style="margin-top: 40px; font-size: 1em;">Cancel</a>
+</body>
+</html>

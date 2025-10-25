@@ -881,7 +881,7 @@ document.getElementById("galleryModal").addEventListener("click", function(event
     }
 });
 
-function showShareLink(name, isPublicProfile) {
+function showShareLink(name, profileName) {
     let fullPath = currentPath;
     if (!fullPath.endsWith("/")) {
         fullPath += "/";
@@ -890,9 +890,7 @@ function showShareLink(name, isPublicProfile) {
     fullPath = fullPath.substring(fullPath.indexOf("/") + 1);
 
     let baseURL = window.location.origin;
-    if (isPublicProfile) {
-        baseURL += "/public";
-    }
+    baseURL += "/" + profileName;
 
     const shareURL = `${baseURL}/${fullPath}`;
 

@@ -39,7 +39,7 @@ body.scrolled .header-bar {
 
 /* === LEFT: Heading === */
 .header-bar h1 {
-    margin: 0;
+    margin-right: 20px;
     font-size: 1em;
     animation: flicker 2s infinite alternate;
 }

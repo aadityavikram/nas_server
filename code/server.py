@@ -26,9 +26,6 @@ import mimetypes
 # Directory to serve storage
 PROFILE_ROOT = "/nas/storage/profiles"
 
-PUBLIC_PROFILE = "public"
-PUBLIC_PROFILE_NAME = "Public"
-
 PROFILE_PASSWORDS_FILE = "/nas/storage/code/profiles.json"
 
 # Directory to serve code
@@ -51,6 +48,15 @@ def load_profile_passwords():
         PROFILE_PASSWORDS = {}
     except json.JSONDecodeError:
         PROFILE_PASSWORDS = {}
+
+def get_profiles_list():
+    global PROFILE_LIST
+    global PUBLIC_PROFILE
+    PROFILE_LIST = list(PROFILE_PASSWORDS.keys())
+    for profile in PROFILE_LIST:
+        if profile.startswith("Public"):
+            PUBLIC_PROFILE = profile
+            break
 
 def run_zip_job(abs_path, job_id):
     try:
@@ -146,6 +152,40 @@ def kill_process_on_port(port):
 
 class FileHandler(SimpleHTTPRequestHandler):
 
+    def send_error_page(self, code, message=None):
+        """Send a generic HTML error page."""
+        messages = {
+            400: "Bad Request",
+            401: "Unauthorized",
+            403: "Forbidden",
+            404: "Not Found",
+            500: "Internal Server Error",
+        }
+
+        title = messages.get(code, "Error")
+        description = message or f"An error occurred: {title}"
+
+        self.send_response(code)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.end_headers()
+
+        template_path = os.path.join(CODE_DIRECTORY, "error.html")
+        try:
+            with open(template_path, "r", encoding="utf-8") as f:
+                html = f.read()
+        except FileNotFoundError:
+            self.send_error_page(500, "Error template not found")
+            return
+
+        # Replace placeholders
+        html = html.replace("{{code}}", str(code))
+        html = html.replace("{{title}}", title)
+        html = html.replace("{{message}}", description)
+
+        encoded = html.encode("utf-8")
+        self.send_response(code)
+        self.wfile.write(encoded)
+
     def get_profile_dir(self):
         # Get profile from cookie
         cookies = self.headers.get("Cookie", "")
@@ -169,7 +209,7 @@ class FileHandler(SimpleHTTPRequestHandler):
             profile_dirs = [d for d in os.listdir(PROFILE_ROOT)
                             if os.path.isdir(os.path.join(PROFILE_ROOT, d))]
         except Exception as e:
-            self.send_error(500, "Failed to read profiles")
+            self.send_error_page(500, "Failed to read profiles")
             return
 
         template_path = os.path.join(CODE_DIRECTORY, "profile.html")
@@ -177,13 +217,13 @@ class FileHandler(SimpleHTTPRequestHandler):
             with open(template_path, "r", encoding="utf-8") as f:
                 html = f.read()
         except FileNotFoundError:
-            self.send_error(500, "Profile selection template not found")
+            self.send_error_page(500, "Profile selection template not found")
             return
 
         # Build list of profiles
         profiles_html = ""
         for prof in profile_dirs:
-            profiles_html += f'<a href="/?set_profile={quote(prof)}">{prof}</a>\n'
+            profiles_html += f'<a href="/?set_profile={quote(prof)}">{prof.split("_")[0]}</a>\n'
 
         # Insert into template
         html = html.replace("{{profiles}}", profiles_html)
@@ -201,7 +241,7 @@ class FileHandler(SimpleHTTPRequestHandler):
             with open(template_path, "r", encoding="utf-8") as f:
                 html = f.read()
         except FileNotFoundError:
-            self.send_error(500, "Add profile template not found")
+            self.send_error_page(500, "Add profile template not found")
             return
 
         if error_msg:
@@ -224,11 +264,12 @@ class FileHandler(SimpleHTTPRequestHandler):
             with open(template_path, "r", encoding="utf-8") as f:
                 html = f.read()
         except FileNotFoundError:
-            self.send_error(500, "Login template not found")
+            self.send_error_page(500, "Login template not found")
             return
 
         # Simple replacement
         html = html.replace("{{profile}}", profile)
+        html = html.replace("{{profileSplit}}", profile.split("_")[0])
         html = html.replace("{{error_msg}}", error_msg or "")
         if error_msg:
             html = html.replace("{% if error_msg %}", "").replace("{% endif %}", "")
@@ -247,7 +288,7 @@ class FileHandler(SimpleHTTPRequestHandler):
         """Serve a GET request supporting Range header for partial content."""
         path = self.translate_path(self.path)
         if not os.path.isfile(path):
-            self.send_error(404, "File not found")
+            self.send_error_page(404, "File not found")
             return None
 
         ctype = self.guess_type(path)
@@ -270,7 +311,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                 if end >= size:
                     end = size - 1
                 if start >= size or start > end:
-                    self.send_error(416, "Requested Range Not Satisfiable")
+                    self.send_error_page(416, "Requested Range Not Satisfiable")
                     return None
 
                 self.send_response(206)
@@ -282,7 +323,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                 return open(path, 'rb'), start, end
             else:
                 # Malformed Range header
-                self.send_error(400, "Bad Range header")
+                self.send_error_page(400, "Bad Range header")
                 return None
         else:
             self.send_response(200)
@@ -291,23 +332,56 @@ class FileHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             return open(path, 'rb'), 0, size - 1
 
+    def load_profile_file_dir(self, file_path):
+        if os.path.isdir(file_path):
+            print("Is directory")
+            f = self.list_directory(file_path)
+            if f:
+                self.wfile.write(f.read())
+            return
+
+        elif os.path.isfile(file_path):
+            print("Is file")
+            # Guess MIME type automatically
+            mime_type, _ = mimetypes.guess_type(file_path)
+            if not mime_type:
+                mime_type = "application/octet-stream"
+
+            try:
+                with open(file_path, "rb") as f:
+                    data = f.read()
+            except Exception as e:
+                self.send_error_page(500, f"Error reading file: {e}")
+                return
+
+            self.send_response(200)
+            self.send_header("Content-Type", mime_type)
+            self.send_header("Content-Length", str(len(data)))
+            # Optional: allow CORS for embedding or media players
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(data)
+            return
+        else:
+            self.send_error_page(404, "File not found")
+            return
+
     def list_directory(self, path):
         try:
             with open(os.path.join(CODE_DIRECTORY, "template.html"), "r", encoding="utf-8") as f:
                 template = f.read()
         except FileNotFoundError:
-            self.send_error(500, "Missing template.html")
+            self.send_error_page(500, "Application template not found")
             return None
 
         try:
             file_list = os.listdir(path)
         except OSError:
-            self.send_error(404, "No permission to list directory")
+            self.send_error_page(404, "No permission to list directory")
             return None
 
         profile_dir = self.get_profile_dir()
         profile_name = os.path.basename(profile_dir) if profile_dir else ""
-        is_public_profile = profile_name == "Public"
 
         parsed_url = urlparse(self.path)
         query_params = parse_qs(parsed_url.query)
@@ -390,7 +464,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                             <a href="javascript:void(0)" class="dropdown-link" onclick="startZipDownload('{quote(os.path.join(rel_path, name))}')">Download ZIP</a>
                             <button class="rename-btn" onclick="renameItem('{name}')">Rename</button>
                             <button class="delete-btn" onclick="deleteFile('{name}', false)">Delete</button>
-                            <button class="share-btn" onclick="showShareLink('{name}', {str(is_public_profile).lower()})">Share Link</button>
+                            <button class="share-btn" onclick="showShareLink('{name}', '{profile_name}')">Share Link</button>
                         </div>
                     </div>
                 '''
@@ -404,7 +478,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                             <button class="rename-btn" onclick="renameItem('{name}')">Rename</button>
                             <button class="delete-btn" onclick="deleteFile('{name}', false)">Delete</button>
                             <button class="detail-btn" onclick="showDetails('{name}')">Details</button>
-                            <button class="share-btn" onclick="showShareLink('{name}', {str(is_public_profile).lower()})">Share Link</button>
+                            <button class="share-btn" onclick="showShareLink('{name}', '{profile_name}')">Share Link</button>
                         </div>
                     </div>
                 '''
@@ -439,6 +513,7 @@ class FileHandler(SimpleHTTPRequestHandler):
         currentFolderPath = f'<div class="currentFolder">Currently in: {breadcrumb_html}</div>'
         
         html = template.replace("{{currentFolderName}}", currentFolderName)
+        html = html.replace("{{profileName}}", profile_name.split("_")[0])
         html = html.replace("{{currentFolderPath}}", currentFolderPath)
         html = html.replace("{{file_table}}", items)
         html = html.replace("{{query}}", search_query)
@@ -479,7 +554,7 @@ class FileHandler(SimpleHTTPRequestHandler):
             password = params.get("password", [None])[0]
 
             if not profile or not password:
-                self.send_error(400, "Missing profile or password")
+                self.send_error_page(400, "Missing profile or password")
                 return
 
             expected_password = PROFILE_PASSWORDS.get(profile)
@@ -501,10 +576,11 @@ class FileHandler(SimpleHTTPRequestHandler):
             post_params = parse_qs(post_data)
 
             profile_name = post_params.get("profileName", [""])[0].strip()
-            profile_password = post_params.get("profilePassword", [None])[0]
+            profile_name = f"{profile_name}_{uuid.uuid4()}"
+            profile_password = post_params.get("profilePassword", [None])[0] or None
 
-            if not profile_name or not profile_password:
-                return self.send_add_profile_form(error_msg="Profile name and password are required.")
+            if not profile_name:
+                return self.send_add_profile_form(error_msg="Profile name is required.")
 
             if not profile_name or "/" in profile_name or "\\" in profile_name:
                 self.send_add_profile_form(error_msg="Invalid profile name.")
@@ -542,7 +618,7 @@ class FileHandler(SimpleHTTPRequestHandler):
             post_params = parse_qs(post_data)
 
             if "profile" not in post_params or "password" not in post_params:
-                self.send_error(400, "Profile or password not specified")
+                self.send_error_page(400, "Profile or password not specified")
                 return
 
             profile_to_remove = post_params["profile"][0]
@@ -550,7 +626,7 @@ class FileHandler(SimpleHTTPRequestHandler):
             profile_path = os.path.join(PROFILE_ROOT, profile_to_remove)
 
             if not os.path.isdir(profile_path):
-                self.send_error(404, "Profile not found")
+                self.send_error_page(404, "Profile not found")
                 return
 
             expected_password = PROFILE_PASSWORDS.get(profile_to_remove)
@@ -566,8 +642,15 @@ class FileHandler(SimpleHTTPRequestHandler):
 
             try:
                 shutil.rmtree(profile_path)
+                if profile_to_remove in PROFILE_PASSWORDS:
+                    PROFILE_PASSWORDS.pop(profile_to_remove, None)
+                    try:
+                        with open(PROFILE_PASSWORDS_FILE, "w", encoding="utf-8") as f:
+                            json.dump(PROFILE_PASSWORDS, f, indent=2)
+                    except Exception as e:
+                        return self.send_add_profile_form(error_msg="Failed to remove profile password.")
             except Exception as e:
-                self.send_error(500, f"Failed to remove profile: {e}")
+                self.send_error_page(500, f"Failed to remove profile: {e}")
                 return
 
             # Redirect back to profile selection page after removal
@@ -610,7 +693,7 @@ class FileHandler(SimpleHTTPRequestHandler):
         elif parsed_url.path == "/upload":
             self.profile_dir = self.get_profile_dir()
             if not self.profile_dir:
-                self.send_error(403, "Profile not selected")
+                self.send_error_page(403, "Profile not selected")
                 return
             query = parse_qs(parsed_url.query)
             ctype, pdict = cgi.parse_header(self.headers.get('Content-Type'))
@@ -623,17 +706,17 @@ class FileHandler(SimpleHTTPRequestHandler):
                                             environ={'REQUEST_METHOD': 'POST'},
                                             keep_blank_values=True)
                 except Exception as e:
-                    self.send_error(400, f"Error parsing form data: {e}")
+                    self.send_error_page(400, f"Error parsing form data: {e}")
                     return
 
                 if "file" not in form:
-                    self.send_error(400, "No file field in form")
+                    self.send_error_page(400, "No file field in form")
                     return
 
                 file_item = form["file"]
 
                 if not file_item.filename:
-                    self.send_error(400, "No filename provided")
+                    self.send_error_page(400, "No filename provided")
                     return
 
                 # Sanitize filename to avoid directory traversal attacks
@@ -648,13 +731,13 @@ class FileHandler(SimpleHTTPRequestHandler):
 
                 # Make sure it's still inside the DIRECTORY
                 if not abs_upload_dir.startswith(os.path.abspath(self.get_profile_dir())):
-                    self.send_error(400, "Invalid upload path")
+                    self.send_error_page(400, "Invalid upload path")
                     return
 
                 try:
                     os.makedirs(abs_upload_dir, exist_ok=True)
                 except Exception as e:
-                    self.send_error(500, f"Failed to create directories: {e}")
+                    self.send_error_page(500, f"Failed to create directories: {e}")
                     return
 
                 filepath = os.path.join(abs_upload_dir, filename)
@@ -664,7 +747,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                         data = file_item.file.read()
                         f.write(data)
                 except Exception as e:
-                    self.send_error(500, f"Failed to save file: {e}")
+                    self.send_error_page(500, f"Failed to save file: {e}")
                     return
 
                 # Redirect back to the main page (file listing)
@@ -802,7 +885,7 @@ class FileHandler(SimpleHTTPRequestHandler):
         abs_path = os.path.normpath(os.path.join(self.get_profile_dir(), file_path.lstrip("/")))
 
         if not abs_path.startswith(self.get_profile_dir()) or not os.path.exists(abs_path):
-            self.send_error(404, "Not found")
+            self.send_error_page(404, "Not found")
             return
 
         stat = os.stat(abs_path)
@@ -832,49 +915,51 @@ class FileHandler(SimpleHTTPRequestHandler):
         qs = parse_qs(parsed_url.query)
         requested_path = unquote(parsed_url.path)
 
+        profile_dir = self.get_profile_dir()
+        profile_name = os.path.basename(profile_dir) if profile_dir else ""
+
         # ---  Serve files from public profile without authentication ---
         if requested_path.startswith(f"/{PUBLIC_PROFILE}/"):
             relpath = requested_path[len(PUBLIC_PROFILE) + 2:]  # remove "/public/"
-            file_path = os.path.join(PROFILE_ROOT, PUBLIC_PROFILE_NAME, relpath)
+            print(f"Rel Path: {relpath}")
+            file_path = os.path.join(PROFILE_ROOT, PUBLIC_PROFILE, relpath)
+            print(f"File Path: {file_path}")
 
             # Prevent path traversal attacks (like /public/../secret.txt)
             file_path = os.path.realpath(file_path)
-            if not file_path.startswith(os.path.realpath(os.path.join(PROFILE_ROOT, PUBLIC_PROFILE_NAME))):
-                self.send_error(403, "Forbidden")
+            if not file_path.startswith(os.path.realpath(os.path.join(PROFILE_ROOT, PUBLIC_PROFILE))):
+                self.send_error_page(403, "You are not authorised")
                 return
 
-            if os.path.isdir(file_path):
-                print("Is directory")
-                f = self.list_directory(file_path)
-                if f:
-                    self.wfile.write(f.read())
-                return
+            self.load_profile_file_dir(file_path)
 
-            elif os.path.isfile(file_path):
-                print("Is file")
-                # Guess MIME type automatically
-                mime_type, _ = mimetypes.guess_type(file_path)
-                if not mime_type:
-                    mime_type = "application/octet-stream"
+        for profile in PROFILE_LIST:
+            if requested_path.startswith(f"/{profile}/"):
+                parts = requested_path.strip("/").split("/", 1)
+                if len(parts) >= 1:
+                    profileNameActual = parts[0]
+                else:
+                    profileNameActual = ""
 
-                try:
-                    with open(file_path, "rb") as f:
-                        data = f.read()
-                except Exception as e:
-                    self.send_error(500, f"Error reading file: {e}")
+                print(f"{profile_name} {profileNameActual}")
+
+                if profile_name != profileNameActual:
+                    self.send_error_page(403, "You are not authorised")
                     return
 
-                self.send_response(200)
-                self.send_header("Content-Type", mime_type)
-                self.send_header("Content-Length", str(len(data)))
-                # Optional: allow CORS for embedding or media players
-                self.send_header("Access-Control-Allow-Origin", "*")
-                self.end_headers()
-                self.wfile.write(data)
-                return
-            else:
-                self.send_error(404, "File not found")
-                return
+                relpath = requested_path[len(profile) + 2:]
+                print(f"Rel Path: {relpath}")
+                file_path = os.path.join(PROFILE_ROOT, profile, relpath)
+                print(f"File Path: {file_path}")
+
+                # Prevent path traversal attacks (like /public/../secret.txt)
+                file_path = os.path.realpath(file_path)
+                if not file_path.startswith(os.path.realpath(os.path.join(PROFILE_ROOT, profile))):
+                    self.send_error_page(403, "You are not authorised")
+                    return
+
+                self.load_profile_file_dir(file_path)
+                break
 
         if parsed_url.path == "/remove-profile":
             # Read profiles again
@@ -882,13 +967,13 @@ class FileHandler(SimpleHTTPRequestHandler):
                 profile_dirs = [d for d in os.listdir(PROFILE_ROOT)
                                 if os.path.isdir(os.path.join(PROFILE_ROOT, d))]
             except Exception as e:
-                self.send_error(500, "Failed to read profiles")
+                self.send_error_page(500, "Failed to read profiles")
                 return
 
             # Build HTML to let user select which profile to delete
             profiles_html = ""
             for prof in profile_dirs:
-                profiles_html += f'<li><a href="/confirm-remove?profile={quote(prof)}">{prof}</a></li>'
+                profiles_html += f'<li><a href="/confirm-remove?profile={quote(prof)}">{prof.split("_")[0]}</a></li>'
 
             template_path = os.path.join(CODE_DIRECTORY, "profileRemove.html")
             with open(template_path, "r", encoding="utf-8") as f:
@@ -908,14 +993,14 @@ class FileHandler(SimpleHTTPRequestHandler):
         if parsed_url.path == "/confirm-remove":
             # Confirm removal page for the selected profile
             if "profile" not in qs:
-                self.send_error(400, "Profile not specified")
+                self.send_error_page(400, "Profile not specified")
                 return
 
             profile_to_remove = qs["profile"][0]
             profile_path = os.path.join(PROFILE_ROOT, profile_to_remove)
 
             if not os.path.isdir(profile_path):
-                self.send_error(404, "Profile not found")
+                self.send_error_page(404, "Profile not found")
                 return
 
             # Get error message from query string (if any)
@@ -927,7 +1012,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                 with open(template_path, "r", encoding="utf-8") as f:
                     html = f.read()
             except FileNotFoundError:
-                self.send_error(500, "Profile selection template not found")
+                self.send_error_page(500, "Profile removal confirmation template not found")
                 return
 
             html = html.replace("{{profile_to_remove}}", profile_to_remove)
@@ -964,7 +1049,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                 self.send_header("Location", "/")
                 self.end_headers()
             else:
-                self.send_error(403, "Invalid profile name")
+                self.send_error_page(403, "Invalid profile name")
             return
 
         cookies = self.headers.get("Cookie", "")
@@ -1004,7 +1089,7 @@ class FileHandler(SimpleHTTPRequestHandler):
             static_path = os.path.join(CODE_DIRECTORY, file_name)
 
             if not os.path.isfile(static_path):
-                self.send_error(404, "Static file not found")
+                self.send_error_page(404, "Static file not found")
                 return
 
             try:
@@ -1019,7 +1104,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                 return
             except Exception as e:
                 print("Error serving static file:", e)
-                self.send_error(500, "Error serving static file")
+                self.send_error_page(500, "Error serving static file")
                 return
         if parsed_url.path == "/details":
             return self.handle_details(parsed_url)
@@ -1216,6 +1301,7 @@ if __name__ == "__main__":
     os.makedirs(PROFILE_ROOT, exist_ok=True)
     os.makedirs(CODE_DIRECTORY, exist_ok=True)
     load_profile_passwords()
+    get_profiles_list()
     server_address = ("", PORT)
     httpd = ThreadedHTTPServer(server_address, FileHandler)
     print(f"Serving on port {PORT}...")

@@ -86,10 +86,10 @@
     {% if error_msg %}
     <div class="error">{{error_msg}}</div>
     {% endif %}
-    <h2>Access Profile: {{profile}}</h2>
+    <h2>Access Profile: {{profileSplit}}</h2>
     <form method="POST" action="/login">
       <input type="hidden" name="profile" value="{{profile}}">
-      <p><strong>Profile:</strong> {{profile}}</p>
+      <p><strong>Profile:</strong> {{profileSplit}}</p>
       <label>Password:</label>
       <input type="password" name="password" autofocus>
       <input type="submit" value="Login">

@@ -881,7 +881,7 @@ document.getElementById("galleryModal").addEventListener("click", function(event
     }
 });
 
-function showShareLink(name) {
+function showShareLink(name, isPublicProfile) {
     let fullPath = currentPath;
     if (!fullPath.endsWith("/")) {
         fullPath += "/";
@@ -889,7 +889,12 @@ function showShareLink(name) {
     fullPath += encodeURIComponent(name);
     fullPath = fullPath.substring(fullPath.indexOf("/") + 1);
 
-    const shareURL = `${window.location.origin}/${fullPath}`;
+    let baseURL = window.location.origin;
+    if (isPublicProfile) {
+        baseURL += "/public";
+    }
+
+    const shareURL = `${baseURL}/${fullPath}`;
 
     document.getElementById("shareFileName").textContent = name;
     document.getElementById("shareLinkInput").value = shareURL;

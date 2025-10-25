@@ -1,6 +1,7 @@
 from flask import Flask, request, render_template_string
 import threading
 import paramiko
+import socket
 
 app = Flask(__name__)
 
@@ -53,7 +54,6 @@ HTML_FORM = """
     <h1>Launch NAS UI</h1>
     <form method="POST">
         <input type="text" name="username" placeholder="SSH Username" required><br>
-        <input type="text" name="ip" placeholder="Server IP" required><br>
         <input type="password" name="password" placeholder="SSH Password" required><br>
         <button type="submit">Launch</button>
     </form>
@@ -65,8 +65,9 @@ HTML_FORM = """
 def index():
     if request.method == "POST":
         username = request.form["username"]
-        ip = request.form["ip"]
         password = request.form["password"]
+
+        ip = get_local_ip()
 
         delay_seconds = 1
         server_ip = request.host.split(':')[0]
@@ -92,6 +93,19 @@ def index():
            """
 
     return render_template_string(HTML_FORM)
+
+def get_local_ip():
+    # Creates a temporary socket to get the local IP
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # Doesn't need to be reachable, just used to get the local IP
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+    except Exception:
+        ip = "127.0.0.1"
+    finally:
+        s.close()
+    return ip
 
 
 def start_server(username, ip, password):

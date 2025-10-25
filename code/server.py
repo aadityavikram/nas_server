@@ -21,8 +21,13 @@ import time
 import threading
 import uuid
 
+import mimetypes
+
 # Directory to serve storage
 PROFILE_ROOT = "/nas/storage/profiles"
+
+PUBLIC_PROFILE = "public"
+PUBLIC_PROFILE_NAME = "Public"
 
 PROFILE_PASSWORDS_FILE = "/nas/storage/code/profiles.json"
 
@@ -300,6 +305,10 @@ class FileHandler(SimpleHTTPRequestHandler):
             self.send_error(404, "No permission to list directory")
             return None
 
+        profile_dir = self.get_profile_dir()
+        profile_name = os.path.basename(profile_dir) if profile_dir else ""
+        is_public_profile = profile_name == "Public"
+
         parsed_url = urlparse(self.path)
         query_params = parse_qs(parsed_url.query)
         search_query = query_params.get("q", [""])[0].strip().lower()
@@ -381,7 +390,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                             <a href="javascript:void(0)" class="dropdown-link" onclick="startZipDownload('{quote(os.path.join(rel_path, name))}')">Download ZIP</a>
                             <button class="rename-btn" onclick="renameItem('{name}')">Rename</button>
                             <button class="delete-btn" onclick="deleteFile('{name}', false)">Delete</button>
-                            <button class="share-btn" onclick="showShareLink('{name}')">Share Link</button>
+                            <button class="share-btn" onclick="showShareLink('{name}', {str(is_public_profile).lower()})">Share Link</button>
                         </div>
                     </div>
                 '''
@@ -395,7 +404,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                             <button class="rename-btn" onclick="renameItem('{name}')">Rename</button>
                             <button class="delete-btn" onclick="deleteFile('{name}', false)">Delete</button>
                             <button class="detail-btn" onclick="showDetails('{name}')">Details</button>
-                            <button class="share-btn" onclick="showShareLink('{name}')">Share Link</button>
+                            <button class="share-btn" onclick="showShareLink('{name}', {str(is_public_profile).lower()})">Share Link</button>
                         </div>
                     </div>
                 '''
@@ -821,6 +830,51 @@ class FileHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         parsed_url = urlparse(self.path)
         qs = parse_qs(parsed_url.query)
+        requested_path = unquote(parsed_url.path)
+
+        # ---  Serve files from public profile without authentication ---
+        if requested_path.startswith(f"/{PUBLIC_PROFILE}/"):
+            relpath = requested_path[len(PUBLIC_PROFILE) + 2:]  # remove "/public/"
+            file_path = os.path.join(PROFILE_ROOT, PUBLIC_PROFILE_NAME, relpath)
+
+            # Prevent path traversal attacks (like /public/../secret.txt)
+            file_path = os.path.realpath(file_path)
+            if not file_path.startswith(os.path.realpath(os.path.join(PROFILE_ROOT, PUBLIC_PROFILE_NAME))):
+                self.send_error(403, "Forbidden")
+                return
+
+            if os.path.isdir(file_path):
+                print("Is directory")
+                f = self.list_directory(file_path)
+                if f:
+                    self.wfile.write(f.read())
+                return
+
+            elif os.path.isfile(file_path):
+                print("Is file")
+                # Guess MIME type automatically
+                mime_type, _ = mimetypes.guess_type(file_path)
+                if not mime_type:
+                    mime_type = "application/octet-stream"
+
+                try:
+                    with open(file_path, "rb") as f:
+                        data = f.read()
+                except Exception as e:
+                    self.send_error(500, f"Error reading file: {e}")
+                    return
+
+                self.send_response(200)
+                self.send_header("Content-Type", mime_type)
+                self.send_header("Content-Length", str(len(data)))
+                # Optional: allow CORS for embedding or media players
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(data)
+                return
+            else:
+                self.send_error(404, "File not found")
+                return
 
         if parsed_url.path == "/remove-profile":
             # Read profiles again

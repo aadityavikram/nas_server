@@ -6,6 +6,7 @@ Network Attached Storage on a Python server running in Ubuntu
 
 - Launcher GUI
 - Password locked profiles
+- Public profile for public link sharing
 - Profile add / remove
 - File access
 - Search in current directory

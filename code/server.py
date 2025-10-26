@@ -465,7 +465,13 @@ class FileHandler(SimpleHTTPRequestHandler):
                             <a href="javascript:void(0)" class="dropdown-link" onclick="startZipDownload('{quote(os.path.join(rel_path, name))}')">Download ZIP</a>
                             <button class="rename-btn" onclick="renameItem('{name}')">Rename</button>
                             <button class="delete-btn" onclick="deleteFile('{name}', false)">Delete</button>
+                '''
+                # Only show share link button if profile is not Public
+                if not profile_name.startswith("Public"):
+                    actions_html += f'''
                             <button class="share-btn" onclick="showShareLink('{name}', '{profile_name}')">Share Link</button>
+                    '''
+                actions_html += '''
                         </div>
                     </div>
                 '''

@@ -2,8 +2,8 @@
 <html>
   <head>
     <title>Add New Profile</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
       html, body {
           height: 100%;
           margin: 0;
@@ -79,6 +79,36 @@
           margin-top: 15px;
           text-align: center;
       }
+      .input-wrapper {
+          position: relative;
+          display: flex;
+          align-items: center;
+      }
+      .input-wrapper input {
+          width: 100%;
+          padding-right: 60px; /* space for icons */
+          box-sizing: border-box;
+      }
+      .input-wrapper .icon {
+          position: absolute;
+          right: 10px;
+          color: #00ff00;
+          cursor: pointer;
+          font-size: 0.9em;
+          user-select: none;
+      }
+
+      /* Separate the icons slightly */
+      #caps-icon {
+          right: 45px;
+          color: #ff3333;
+          visibility: hidden;
+          pointer-events: none;
+      }
+
+      #toggle-icon {
+          right: 10px;
+      }
     </style>
   </head>
   <body>
@@ -89,9 +119,51 @@
       <label for="profileName">Profile Name:</label>
       <input type="text" id="profileName" name="profileName" required autofocus>
       <label for="profilePassword">Password:</label>
-      <input type="password" id="profilePassword" name="profilePassword">
+
+      <div class="input-wrapper">
+        <input type="password" id="profilePassword" name="profilePassword">
+        <span id="caps-icon" class="icon">C</span>
+        <span id="toggle-icon" class="icon">Show</span>
+      </div>
+
       <input type="submit" value="Create Profile">
     </form>
     <a href="/switch" class="back-btn">Back</a>
+
+    <script>
+      const passwordField = document.getElementById('profilePassword');
+      const capsIcon = document.getElementById('caps-icon');
+      const toggleIcon = document.getElementById('toggle-icon');
+
+      // Track Caps Lock state globally
+      let capsLockActive = false;
+
+      function updateCapsIndicator(e) {
+        capsLockActive = e.getModifierState('CapsLock');
+        capsIcon.style.visibility = capsLockActive ? 'visible' : 'hidden';
+      }
+
+      passwordField.addEventListener('keydown', updateCapsIndicator);
+      passwordField.addEventListener('keyup', updateCapsIndicator);
+
+      // Hide Caps Lock icon when leaving the field
+      passwordField.addEventListener('focusout', () => {
+        capsIcon.style.visibility = 'hidden';
+      });
+
+      // Toggle password visibility
+      toggleIcon.addEventListener('click', () => {
+        if (passwordField.type === 'password') {
+          passwordField.type = 'text';
+          toggleIcon.textContent = 'Hide';
+        } else {
+          passwordField.type = 'password';
+          toggleIcon.textContent = 'Show';
+        }
+
+        // Restore Caps Lock indicator immediately
+        capsIcon.style.visibility = capsLockActive ? 'visible' : 'hidden';
+      });
+    </script>
   </body>
 </html>

@@ -1,99 +1,165 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Login - {{profile}}</title>
-    <style>
-      @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+<head>
+  <title>Login - {{profile}}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        font-family: 'Share Tech Mono', monospace;
+        background-color: black;
+        color: #00ff00;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+    h2 {
+        color: #00ff00;
+        text-shadow: 0 0 5px #00ff00;
+    }
+    form {
+        border: 1px solid #00ff00;
+        padding: 20px 40px;
+        border-radius: 8px;
+        background-color: rgba(0, 0, 0, 0.8);
+        box-shadow: 0 0 20px #00ff00;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .input-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+    .input-wrapper input {
+        width: 100%;
+        background-color: black;
+        border: 1px solid #00ff00;
+        color: #00ff00;
+        padding: 8px 60px 8px 8px;
+        font-family: 'Share Tech Mono', monospace;
+        outline: none;
+        box-sizing: border-box;
+    }
+    .input-wrapper input:focus {
+        box-shadow: 0 0 5px #00ff00;
+    }
+    .icon {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 0.9em;
+        cursor: pointer;
+        user-select: none;
+    }
+    #caps-icon {
+        right: 45px;
+        color: #ff3333;
+        visibility: hidden;
+        pointer-events: none;
+    }
+    #toggle-icon {
+        right: 10px;
+        color: #00ff00;
+    }
+    #toggle-icon:hover {
+        color: #00cc00;
+    }
+    input[type="submit"] {
+        background-color: black;
+        border: 1px solid #00ff00;
+        color: #00ff00;
+        padding: 8px;
+        cursor: pointer;
+        font-family: 'Share Tech Mono', monospace;
+    }
+    input[type="submit"]:hover {
+        background-color: #00ff00;
+        color: black;
+    }
+    .logout-btn {
+        margin-top: 20px;
+        background-color: black;
+        border: 1px solid red;
+        color: red;
+        padding: 6px 12px;
+        text-decoration: none;
+        display: inline-block;
+        border-radius: 5px;
+        transition: all 0.3s;
+    }
+    .logout-btn:hover {
+        background-color: red;
+        color: black;
+        box-shadow: 0 0 10px red;
+    }
+    .error {
+        color: red;
+        margin-bottom: 10px;
+    }
+    .matrix-footer {
+        margin-top: 20px;
+        font-size: 0.9em;
+        color: #009900;
+        opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+{% if error_msg %}
+<div class="error">{{error_msg}}</div>
+{% endif %}
+<h2>Access Profile: {{profileSplit}}</h2>
+<form method="POST" action="/login">
+  <input type="hidden" name="profile" value="{{profile}}">
+  <p><strong>Profile:</strong> {{profileSplit}}</p>
 
-      html, body {
-          height: 100%;
-          margin: 0;
-          padding: 0;
-          font-family: 'Share Tech Mono', monospace;
-          background-color: black;
-          color: #00ff00;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
+  <label>Password:</label>
+  <div class="input-wrapper">
+    <input id="password" type="password" name="password" autofocus required>
+    <span id="caps-icon" class="icon">C</span>
+    <span id="toggle-icon" class="icon">Show</span>
+  </div>
+
+  <input type="submit" value="Login">
+</form>
+<a href="/switch" class="logout-btn">Back</a>
+
+<script>
+  const passwordField = document.getElementById('password');
+  const capsIcon = document.getElementById('caps-icon');
+  const toggleIcon = document.getElementById('toggle-icon');
+
+  // Track Caps Lock state
+  let capsLockActive = false;
+
+  function updateCapsIndicator(e) {
+      capsLockActive = e.getModifierState('CapsLock');
+      capsIcon.style.visibility = capsLockActive ? 'visible' : 'hidden';
+  }
+
+  passwordField.addEventListener('keydown', updateCapsIndicator);
+  passwordField.addEventListener('keyup', updateCapsIndicator);
+  passwordField.addEventListener('focusout', () => {
+      capsIcon.style.visibility = 'hidden';
+  });
+
+  // Toggle password visibility
+  toggleIcon.addEventListener('click', () => {
+      if (passwordField.type === 'password') {
+          passwordField.type = 'text';
+          toggleIcon.textContent = 'Hide';
+      } else {
+          passwordField.type = 'password';
+          toggleIcon.textContent = 'Show';
       }
-      h2 {
-          color: #00ff00;
-          text-shadow: 0 0 5px #00ff00;
-      }
-      form {
-          border: 1px solid #00ff00;
-          padding: 20px 40px;
-          border-radius: 8px;
-          background-color: rgba(0, 0, 0, 0.8);
-          box-shadow: 0 0 20px #00ff00;
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-      }
-      input[type="password"] {
-          background-color: black;
-          border: 1px solid #00ff00;
-          color: #00ff00;
-          padding: 8px;
-          font-family: 'Share Tech Mono', monospace;
-          outline: none;
-      }
-      input[type="password"]:focus {
-          box-shadow: 0 0 5px #00ff00;
-      }
-      input[type="submit"] {
-          background-color: black;
-          border: 1px solid #00ff00;
-          color: #00ff00;
-          padding: 8px;
-          cursor: pointer;
-          font-family: 'Share Tech Mono', monospace;
-      }
-      input[type="submit"]:hover {
-          background-color: #00ff00;
-          color: black;
-      }
-      .logout-btn {
-          margin-top: 20px;
-          background-color: black;
-          border: 1px solid red;
-          color: red;
-          padding: 6px 12px;
-          text-decoration: none;
-          display: inline-block;
-          border-radius: 5px;
-          transition: all 0.3s;
-      }
-      .logout-btn:hover {
-          background-color: red;
-          color: black;
-          box-shadow: 0 0 10px red;
-      }
-      .error {
-          color: red;
-          margin-bottom: 10px;
-      }
-      .matrix-footer {
-          margin-top: 20px;
-          font-size: 0.9em;
-          color: #009900;
-          opacity: 0.8;
-      }
-    </style>
-  </head>
-  <body>
-    {% if error_msg %}
-    <div class="error">{{error_msg}}</div>
-    {% endif %}
-    <h2>Access Profile: {{profileSplit}}</h2>
-    <form method="POST" action="/login">
-      <input type="hidden" name="profile" value="{{profile}}">
-      <p><strong>Profile:</strong> {{profileSplit}}</p>
-      <label>Password:</label>
-      <input type="password" name="password" autofocus>
-      <input type="submit" value="Login">
-    </form>
-    <a href="/switch" class="logout-btn">Back</a>
-  </body>
+      // Restore Caps Lock icon
+      capsIcon.style.visibility = capsLockActive ? 'visible' : 'hidden';
+  });
+</script>
+</body>
 </html>

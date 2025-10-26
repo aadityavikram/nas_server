@@ -825,7 +825,8 @@ class FileHandler(SimpleHTTPRequestHandler):
         elif parsed_url.path == "/logout":
             threading.Thread(target=shutdown_and_kill).start()
             self.send_response(303)
-            self.send_header("Set-Cookie", "profile=; Max-Age=0; Path=/")
+            self.send_header("Set-Cookie", "profile=; Max-Age=0; Path=/")  # Clear cookie
+            self.send_header("Set-Cookie", "authenticated=; Max-Age=0; Path=/")  # Clear auth cookie
             self.end_headers()
             return
         else:

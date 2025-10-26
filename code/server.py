@@ -222,6 +222,7 @@ class FileHandler(SimpleHTTPRequestHandler):
 
         # Build list of profiles
         profiles_html = ""
+        profile_dirs.sort()
         for prof in profile_dirs:
             profiles_html += f'<a href="/?set_profile={quote(prof)}">{prof.split("_")[0]}</a>\n'
 
@@ -571,6 +572,9 @@ class FileHandler(SimpleHTTPRequestHandler):
             return
 
         if parsed_url.path == "/add-profile":
+            profile_dirs = [d for d in os.listdir(PROFILE_ROOT)
+                                        if os.path.isdir(os.path.join(PROFILE_ROOT, d))]
+
             content_length = int(self.headers.get('Content-Length', 0))
             post_data = self.rfile.read(content_length).decode('utf-8')
             post_params = parse_qs(post_data)
@@ -585,6 +589,11 @@ class FileHandler(SimpleHTTPRequestHandler):
             if not profile_name or "/" in profile_name or "\\" in profile_name:
                 self.send_add_profile_form(error_msg="Invalid profile name.")
                 return
+
+            for prof in profile_dirs:
+                if prof.split("_")[0] == profile_name.split("_")[0]:
+                    self.send_add_profile_form(error_msg="Profile already exists.")
+                    return
 
             profile_path = os.path.join(PROFILE_ROOT, profile_name)
 
@@ -972,6 +981,7 @@ class FileHandler(SimpleHTTPRequestHandler):
 
             # Build HTML to let user select which profile to delete
             profiles_html = ""
+            profile_dirs.sort()
             for prof in profile_dirs:
                 profiles_html += f'<li><a href="/confirm-remove?profile={quote(prof)}">{prof.split("_")[0]}</a></li>'
 

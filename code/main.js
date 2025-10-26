@@ -268,6 +268,8 @@ function triggerFolderUpload() {
         document.getElementById("cancelUploadBtn").style.display = "inline";
         document.getElementById("progressBar").style.width = "0%";
         document.getElementById("progressText").textContent = "0%";
+        document.getElementById("uploadSpeedText").textContent = "";
+        document.getElementById("uploadFilename").textContent = "";
 
         const uploadFile = (file, relativePath) => {
             return new Promise((resolve, reject) => {
@@ -284,6 +286,12 @@ function triggerFolderUpload() {
 
                 folderUploadXHRs.push(xhr); // Keep track for cancel
 
+                let fileStartTime = Date.now(); // start time for speed calculation
+                let lastLoaded = 0; // track previous loaded bytes
+
+                // Show current file name
+                document.getElementById("uploadFilename").textContent = `Uploading: ${file.name}`;
+
                 xhr.open("POST", `/upload?path=${encodeURIComponent(uploadPath)}`, true);
 
                 xhr.upload.onprogress = (e) => {
@@ -295,6 +303,13 @@ function triggerFolderUpload() {
                         const percent = (uploadedSize / totalSize) * 100;
                         document.getElementById("progressBar").style.width = percent + "%";
                         document.getElementById("progressText").textContent = Math.round(percent) + "%";
+
+                        // Calculate upload speed
+                        const now = Date.now();
+                        const elapsedSeconds = (now - fileStartTime) / 1000;
+                        const speedBps = e.loaded / elapsedSeconds; // bytes per second
+
+                        uploadSpeedText.textContent = formatSpeed(speedBps);
                     }
                 };
 
@@ -330,6 +345,8 @@ function triggerFolderUpload() {
                         document.getElementById("cancelUploadBtn").style.display = "none";
                         document.getElementById("progressBar").style.width = "0%";
                         document.getElementById("progressText").textContent = "0%";
+                        document.getElementById("uploadSpeedText").textContent = "";
+                        document.getElementById("uploadFilename").textContent = "";
                         window.location.reload();
                     }, 1000);
                 }
@@ -343,6 +360,8 @@ function triggerFolderUpload() {
                 document.getElementById("cancelUploadBtn").style.display = "none";
                 document.getElementById("progressBar").style.width = "0%";
                 document.getElementById("progressText").textContent = "0%";
+                document.getElementById("uploadSpeedText").textContent = "";
+                document.getElementById("uploadFilename").textContent = "";
             }
         })();
     };

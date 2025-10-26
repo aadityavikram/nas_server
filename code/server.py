@@ -903,11 +903,16 @@ class FileHandler(SimpleHTTPRequestHandler):
             self.send_error_page(404, "Not found")
             return
 
+        profile_dir = self.get_profile_dir()
+        profile_name = os.path.basename(profile_dir) if profile_dir else ""
+        profile_name = profile_name.split("_")[0]
+
         stat = os.stat(abs_path)
         file_type = "folder" if os.path.isdir(abs_path) else "file"
         size = stat.st_size if file_type == "file" else "-"
         created = datetime.fromtimestamp(stat.st_ctime).strftime("%Y-%m-%d %H:%M:%S")
         modified = datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M:%S")
+        file_path = f"{profile_name}{file_path}"
 
         data = {
             "name": os.path.basename(abs_path),

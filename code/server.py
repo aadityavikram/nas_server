@@ -260,7 +260,7 @@ class FileHandler(SimpleHTTPRequestHandler):
         self.wfile.write(encoded)
 
     def send_password_form(self, profile, error_msg=None):
-        template_path = os.path.join(CODE_DIRECTORY, "login.html")
+        template_path = os.path.join(CODE_DIRECTORY, "profileLogin.html")
         try:
             with open(template_path, "r", encoding="utf-8") as f:
                 html = f.read()

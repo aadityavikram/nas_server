@@ -473,6 +473,36 @@ document.getElementById("bulkDelete-btn").addEventListener("click", function () 
     alert("Selected items deleted.");
 });
 
+document.getElementById("bulkDownload-btn").addEventListener("click", function () {
+    const selectedCheckboxes = Array.from(document.querySelectorAll(".fileCheckbox:checked"));
+
+    if (selectedCheckboxes.length === 0) return;
+
+    if (!confirm(`Are you sure you want to download ${selectedCheckboxes.length} item(s)?`)) return;
+
+    selectedCheckboxes.forEach(cb => {
+        const name = cb.getAttribute("data-name");
+        const isFolder = cb.getAttribute("data-type") === "folder"; // mark folders in HTML
+        const path = cb.getAttribute("data-path");
+        console.log("Name in bulk download: " + name)
+        console.log("isFolder in bulk download: " + isFolder)
+        console.log("Path in bulk download: " + path)
+
+        if (isFolder) {
+            // Use your folder zip download function
+            startZipDownload(path);
+        } else {
+            // Trigger normal file download by creating a temporary <a>
+            const a = document.createElement('a');
+            a.href = path; // direct URL to file
+            a.download = name; // optional, sets filename for download
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    });
+});
+
 function deleteFile(name, uploadCancelled = false) {
     const baseName = name.replace(/\/$/, '');
 

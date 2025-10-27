@@ -513,7 +513,7 @@ class FileHandler(SimpleHTTPRequestHandler):
 
             items += f'''
                 <tr>
-                    <td><input type="checkbox" class="fileCheckbox" data-name="{name}"></td>
+                    <td><input type="checkbox" class="fileCheckbox" data-name="{name}" data-path="{quote(name)}" data-type="{'folder' if is_folder else 'file'}"></td>
                     <td>{name_html}</td>
                     <td>{type_str}</td>
                     <td>{size_kb}</td>

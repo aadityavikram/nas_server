@@ -290,6 +290,15 @@ main {
     /* Removed: position, top, right, transform */
 }
 
+#zipProgressText {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: white;
+    font-weight: bold;
+}
+
 .progress-wrapper {
     position: fixed;
     top: 12.5%;

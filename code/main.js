@@ -473,34 +473,86 @@ document.getElementById("bulkDelete-btn").addEventListener("click", function () 
     alert("Selected items deleted.");
 });
 
-document.getElementById("bulkDownload-btn").addEventListener("click", function () {
+document.getElementById("bulkDownload-btn").addEventListener("click", async function () {
     const selectedCheckboxes = Array.from(document.querySelectorAll(".fileCheckbox:checked"));
 
     if (selectedCheckboxes.length === 0) return;
 
     if (!confirm(`Are you sure you want to download ${selectedCheckboxes.length} item(s)?`)) return;
 
-    selectedCheckboxes.forEach(cb => {
-        const name = cb.getAttribute("data-name");
-        const isFolder = cb.getAttribute("data-type") === "folder"; // mark folders in HTML
-        const path = cb.getAttribute("data-path");
-        console.log("Name in bulk download: " + name)
-        console.log("isFolder in bulk download: " + isFolder)
-        console.log("Path in bulk download: " + path)
+    // Collect all paths
+    const paths = selectedCheckboxes.map(cb => cb.getAttribute("data-path"));
 
-        if (isFolder) {
-            // Use your folder zip download function
-            startZipDownload(path);
-        } else {
-            // Trigger normal file download by creating a temporary <a>
-            const a = document.createElement('a');
-            a.href = path; // direct URL to file
-            a.download = name; // optional, sets filename for download
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }
-    });
+    // Show progress UI
+    const progressWrapper = document.getElementById('zipProgressWrapper');
+    const progressBar = document.getElementById('zipProgressBar');
+    const progressText = document.getElementById('zipProgressText');
+    const filenameLabel = document.getElementById('zipDownloadFilename');
+    const cancelZipBtn = document.getElementById('cancelZipBtn');
+
+    progressWrapper.style.display = 'block';
+    cancelZipBtn.style.display = 'inline-block';
+    progressBar.style.width = '0%';
+    progressText.textContent = '0%';
+    filenameLabel.textContent = `Zipping ${selectedCheckboxes.length} item(s)...`;
+
+    try {
+        // Step 1: Send POST request to bulk-zip API
+        const response = await fetch('/bulk-download-zip', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paths })
+        });
+
+        if (!response.ok) throw new Error("Failed to start bulk zip");
+
+        const data = await response.json();
+        const jobId = data.job_id;
+
+        // Step 2: Poll progress every 500ms
+        const pollProgress = setInterval(async () => {
+            try {
+                const progRes = await fetch(`/zip-progress?job_id=${jobId}`);
+                const progData = await progRes.json();
+                const prog = progData.progress;
+
+                if (prog < 0) {
+                    clearInterval(pollProgress);
+                    alert("Error creating zip file.");
+                    progressWrapper.style.display = 'none';
+                    cancelZipBtn.style.display = 'none';
+                    return;
+                }
+
+                progressBar.style.width = prog + '%';
+                progressText.textContent = prog + '%';
+
+                if (prog >= 100) {
+                    clearInterval(pollProgress);
+                    // Step 3: Trigger download
+                    const a = document.createElement('a');
+                    a.href = `/download-zip-file?job_id=${jobId}`;
+                    a.download = '';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+
+                    progressWrapper.style.display = 'none';
+                    cancelZipBtn.style.display = 'none';
+                }
+            } catch (err) {
+                clearInterval(pollProgress);
+                alert("Error fetching zip progress.");
+                progressWrapper.style.display = 'none';
+                cancelZipBtn.style.display = 'none';
+            }
+        }, 500);
+
+    } catch (err) {
+        alert(err.message);
+        progressWrapper.style.display = 'none';
+        cancelZipBtn.style.display = 'none';
+    }
 });
 
 function deleteFile(name, uploadCancelled = false) {

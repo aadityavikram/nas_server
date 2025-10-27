@@ -285,53 +285,83 @@ class FileHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(encoded)
 
-    def send_head_with_range(self):
-        """Serve a GET request supporting Range header for partial content."""
-        path = self.translate_path(self.path)
-        if not os.path.isfile(path):
-            self.send_error_page(404, "File not found")
-            return None
+    def send_file_with_range(self, file_path):
+        """Stream file with HTTP Range support for seeking."""
+        try:
+            file_size = os.path.getsize(file_path)
+            mime_type, _ = mimetypes.guess_type(file_path)
+            if not mime_type:
+                mime_type = "application/octet-stream"
 
-        ctype = self.guess_type(path)
-        fs = os.stat(path)
-        size = fs.st_size
+            # Check if client sent a Range header
+            range_header = self.headers.get("Range")
+            if range_header:
+                # Parse Range: bytes=start-end
+                m = re.match(r"bytes=(\d*)-(\d*)", range_header)
+                if not m:
+                    self.send_error(400, "Invalid Range header")
+                    return
 
-        range_header = self.headers.get('Range')
-        if range_header:
-            # Example: Range: bytes=1000-2000
-            m = re.match(r'bytes=(\d+)-(\d*)', range_header)
-            if m:
-                start = int(m.group(1))
-                end_str = m.group(2)
-                if end_str:
-                    end = int(end_str)
-                else:
-                    end = size - 1
+                start, end = m.groups()
+                start = int(start) if start else 0
+                end = int(end) if end else file_size - 1
+
+                if start >= file_size:
+                    self.send_error(416, "Requested Range Not Satisfiable")
+                    return
 
                 # Clamp end to file size
-                if end >= size:
-                    end = size - 1
-                if start >= size or start > end:
-                    self.send_error_page(416, "Requested Range Not Satisfiable")
-                    return None
+                end = min(end, file_size - 1)
+                chunk_size = end - start + 1
 
-                self.send_response(206)
-                self.send_header("Content-type", ctype)
+                self.send_response(206)  # Partial Content
+                self.send_header("Content-Type", mime_type)
+                self.send_header("Content-Range", f"bytes {start}-{end}/{file_size}")
+                self.send_header("Content-Length", str(chunk_size))
                 self.send_header("Accept-Ranges", "bytes")
-                self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
-                self.send_header("Content-Length", str(end - start + 1))
                 self.end_headers()
-                return open(path, 'rb'), start, end
+
+                with open(file_path, "rb") as f:
+                    f.seek(start)
+                    remaining = chunk_size
+                    while remaining > 0:
+                        read_size = min(32 * 1024, remaining)
+                        data = f.read(read_size)
+                        if not data:
+                            break
+                        try:
+                            self.wfile.write(data)
+                            self.wfile.flush()
+                        except BrokenPipeError:
+                            print("Client disconnected during range transfer.")
+                            break
+                        remaining -= len(data)
+
             else:
-                # Malformed Range header
-                self.send_error_page(400, "Bad Range header")
-                return None
-        else:
-            self.send_response(200)
-            self.send_header("Content-type", ctype)
-            self.send_header("Content-Length", str(size))
-            self.end_headers()
-            return open(path, 'rb'), 0, size - 1
+                # No Range header — send full file
+                self.send_response(200)
+                self.send_header("Content-Type", mime_type)
+                self.send_header("Content-Length", str(file_size))
+                self.send_header("Accept-Ranges", "bytes")
+                self.end_headers()
+
+                with open(file_path, "rb") as f:
+                    while True:
+                        data = f.read(32 * 1024)
+                        if not data:
+                            break
+                        try:
+                            self.wfile.write(data)
+                            self.wfile.flush()
+                        except BrokenPipeError:
+                            print("Client disconnected during full transfer.")
+                            break
+
+        except Exception as e:
+            try:
+                self.send_error(500, f"Error streaming file: {e}")
+            except BrokenPipeError:
+                pass
 
     def load_profile_file_dir(self, file_path):
         if os.path.isdir(file_path):
@@ -349,19 +379,10 @@ class FileHandler(SimpleHTTPRequestHandler):
                 mime_type = "application/octet-stream"
 
             try:
-                with open(file_path, "rb") as f:
-                    data = f.read()
+                self.send_file_with_range(file_path)
             except Exception as e:
                 self.send_error_page(500, f"Error reading file: {e}")
                 return
-
-            self.send_response(200)
-            self.send_header("Content-Type", mime_type)
-            self.send_header("Content-Length", str(len(data)))
-            # Optional: allow CORS for embedding or media players
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.end_headers()
-            self.wfile.write(data)
             return
         else:
             self.send_error_page(404, "File not found")
@@ -1281,22 +1302,11 @@ class FileHandler(SimpleHTTPRequestHandler):
                 # Only handle Range requests for files, not directories or special URLs
                 path = self.translate_path(self.path)
                 if os.path.isfile(path):
-                    result = self.send_head_with_range()
-                    if result is None:
-                        return  # error already sent
-                    f, start, end = result
-
-                    f.seek(start)
-                    remaining = end - start + 1
-                    bufsize = 32*1024
-                    while remaining > 0:
-                        read_len = min(bufsize, remaining)
-                        data = f.read(read_len)
-                        if not data:
-                            break
-                        self.wfile.write(data)
-                        remaining -= len(data)
-                    f.close()
+                    try:
+                        self.send_file_with_range(path)
+                    except Exception as e:
+                        self.send_error_page(500, f"Error reading file: {e}")
+                        return
                 else:
                     # Let superclass handle directories or other requests
                     super().do_GET()

@@ -982,22 +982,46 @@ document.getElementById("galleryModal").addEventListener("click", function(event
     }
 });
 
-function showShareLink(name, profileName) {
+function showShareLink(name, profileName, type) {
     let fullPath = currentPath;
     if (!fullPath.endsWith("/")) {
         fullPath += "/";
     }
-    fullPath += encodeURIComponent(name);
-    fullPath = fullPath.substring(fullPath.indexOf("/") + 1);
+    if (profileName.startsWith("Public") && type == "folder") {
+        fullPath += name;
 
-    let baseURL = window.location.origin;
-    baseURL += "/" + profileName;
+        // Clean leading slash
+        fullPath = fullPath.replace(/^\//, "");
+        // Fetch to check if the folder exists (optional validation step)
+        const apiUrl = `/share?profile=${encodeURIComponent(profileName)}&folder=${encodeURIComponent(fullPath)}`
+        fetch(apiUrl)
+            .then(res => {
+                if (!res.ok) throw new Error("Failed to generate share link (folder not found or unauthorized)");
 
-    const shareURL = `${baseURL}/${fullPath}`;
+                // Build the full share URL
+                const shareURL = window.location.origin + apiUrl;
 
-    document.getElementById("shareFileName").textContent = name;
-    document.getElementById("shareLinkInput").value = shareURL;
-    document.getElementById("shareLinkModal").style.display = "flex";
+                // Update modal content
+                document.getElementById("shareFileName").textContent = name;
+                document.getElementById("shareLinkInput").value = shareURL;
+                document.getElementById("shareLinkModal").style.display = "flex";
+            })
+            .catch(err => {
+                alert(err.message);
+                console.error(err);
+            });
+    } else {
+        fullPath += encodeURIComponent(name);
+        fullPath = fullPath.substring(fullPath.indexOf("/") + 1);
+
+        let baseURL = window.location.origin;
+        baseURL += "/" + profileName;
+        const shareURL = `${baseURL}/${fullPath}`;
+
+        document.getElementById("shareFileName").textContent = name;
+        document.getElementById("shareLinkInput").value = shareURL;
+        document.getElementById("shareLinkModal").style.display = "flex";
+    }
 }
 
 function closeShareModal() {

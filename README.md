@@ -15,7 +15,7 @@ Network Attached Storage on a Python server running in Ubuntu
 - Progress bar on upload file
 - Drag and Drop upload
 - Link Sharing
-- Public folder sharing as separate HTML page
+- Public folder sharing as separate HTML page with gallery
 - Download and delete file
 - Download folder as zip and delete folder
 - Bulk download using checkbox
@@ -114,6 +114,10 @@ Network Attached Storage on a Python server running in Ubuntu
 ## Public Folder Sharing
 
 ![Public_Folder_Sharing](assets/Public_Folder_Sharing.png)
+
+## Public Folder Gallery
+
+![Public_Folder_Gallery](assets/Public_Folder_Gallery.png)
 
 ## More options on a File
 

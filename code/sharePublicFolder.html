@@ -155,10 +155,14 @@
           const gallery = document.getElementById('galleryContent');
           gallery.innerHTML = '';
 
-          const folderItems = {{json_folder_files}}; // injected by Python
+          const folderItems = {{json_folder_files}};
 
           folderItems.forEach(item => {
-              if (item.type === 'file') {
+              const container = document.createElement('div');
+              container.style.margin = '10px';
+              container.style.display = 'inline-block';
+
+              if (item.type === 'image') {
                   // Create link to open image in new tab
                   const link = document.createElement('a');
                   link.href = item.url;
@@ -183,8 +187,28 @@
                   };
 
                   link.appendChild(img);
-                  gallery.appendChild(link);
+                  container.appendChild(link);
               }
+              else if (item.type === 'video') {
+                  const link = document.createElement('a');
+                  link.href = item.url;
+                  link.target = '_blank';
+
+                  const video = document.createElement('video');
+                  video.src = item.url;
+                  video.muted = true;
+                  video.loop = true;
+                  video.playsInline = true;
+                  video.autoplay = true;
+                  video.style.width = '300px';
+                  video.style.border = '1px solid #00ff00';
+                  video.style.boxShadow = '0 0 10px #00ff00';
+
+                  link.appendChild(video);
+                  container.appendChild(link);
+              }
+
+              gallery.appendChild(container);
           });
       }
 

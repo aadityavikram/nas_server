@@ -232,11 +232,17 @@ class FileHandler(SimpleHTTPRequestHandler):
                     html += f'<li><a href="{file_url}" target="_blank">{item}</a></li>'
 
                     # Collect gallery files (images only)
-                    if item.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')):
+                    if item.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp')):
                         gallery_files.append({
                             "name": item,
                             "url": file_url,
-                            "type": "file"
+                            "type": "image"
+                        })
+                    elif item.lower().endswith(('.mp4', '.webm', '.ogg')):
+                        gallery_files.append({
+                            "name": item,
+                            "url": file_url,
+                            "type": "video"
                         })
 
         except Exception as e:

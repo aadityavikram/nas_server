@@ -746,12 +746,14 @@ class FileHandler(SimpleHTTPRequestHandler):
             post_data = self.rfile.read(content_length).decode('utf-8')
             post_params = parse_qs(post_data)
 
-            if "profile" not in post_params or "password" not in post_params:
-                self.send_error_page(400, "Profile or password not specified")
+            if "profile" not in post_params:
+                self.send_error_page(400, "Profile not specified")
                 return
 
             profile_to_remove = post_params["profile"][0]
-            password = post_params["password"][0]
+            password = None
+            if "password" in post_params:
+                password = post_params["password"][0]
             profile_path = os.path.join(PROFILE_ROOT, profile_to_remove)
 
             if not os.path.isdir(profile_path):
@@ -1221,6 +1223,9 @@ class FileHandler(SimpleHTTPRequestHandler):
                 return
 
             profile_to_remove = qs["profile"][0]
+            if profile_to_remove.startswith(f"{PUBLIC_PROFILE}"):
+                self.send_error_page(400, "Cannot delete Public profile")
+                return
             profile_path = os.path.join(PROFILE_ROOT, profile_to_remove)
 
             if not os.path.isdir(profile_path):
@@ -1239,6 +1244,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                 self.send_error_page(500, "Profile removal confirmation template not found")
                 return
 
+            html = html.replace("{{profile_name_to_remove}}", profile_to_remove.split("_")[0])
             html = html.replace("{{profile_to_remove}}", profile_to_remove)
             html = html.replace("{{error_html}}", error_html)
 

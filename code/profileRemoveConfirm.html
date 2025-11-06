@@ -60,14 +60,15 @@
     </style>
   </head>
   <body>
-    <h2>Are you sure you want to remove the profile: {{profile_to_remove}}</h2>
+    <h2>Are you sure you want to remove the profile: {{profile_name_to_remove}}</h2>
     {{error_html}}
     <p style="font-size: 1.2em; color:#ff4444;">All files related to this profile will be deleted permanently</p>
     <form method="POST" action="/remove-profile">
       <input type="hidden" name="profile" value="{{profile_to_remove}}">
 
       <label for="password">Enter password to confirm deletion:</label>
-      <input type="password" id="password" name="password" required autocomplete="off">
+      <label for="password">Keep empty for no password</label>
+      <input type="password" id="password" name="password" autocomplete="off">
 
       <button type="submit" class="confirm">Yes, Remove</button>
       <button type="button" onclick="window.location.href='/remove-profile'" class="cancel">Cancel</button>

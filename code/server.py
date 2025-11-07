@@ -270,7 +270,7 @@ class FileHandler(SimpleHTTPRequestHandler):
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.end_headers()
 
-        template_path = os.path.join(CODE_DIRECTORY, "error.html")
+        template_path = os.path.join(CODE_DIRECTORY, "html", "error.html")
         try:
             with open(template_path, "r", encoding="utf-8") as f:
                 html = f.read()
@@ -313,7 +313,7 @@ class FileHandler(SimpleHTTPRequestHandler):
             self.send_error_page(500, "Failed to read profiles")
             return
 
-        template_path = os.path.join(CODE_DIRECTORY, "profile.html")
+        template_path = os.path.join(CODE_DIRECTORY, "html", "profile.html")
         try:
             with open(template_path, "r", encoding="utf-8") as f:
                 html = f.read()
@@ -338,7 +338,7 @@ class FileHandler(SimpleHTTPRequestHandler):
         self.wfile.write(encoded)
 
     def send_add_profile_form(self, error_msg=None):
-        template_path = os.path.join(CODE_DIRECTORY, "profileAdd.html")
+        template_path = os.path.join(CODE_DIRECTORY, "html", "profileAdd.html")
         try:
             with open(template_path, "r", encoding="utf-8") as f:
                 html = f.read()
@@ -361,7 +361,7 @@ class FileHandler(SimpleHTTPRequestHandler):
         self.wfile.write(encoded)
 
     def send_password_form(self, profile, error_msg=None):
-        template_path = os.path.join(CODE_DIRECTORY, "profileLogin.html")
+        template_path = os.path.join(CODE_DIRECTORY, "html", "profileLogin.html")
         try:
             with open(template_path, "r", encoding="utf-8") as f:
                 html = f.read()
@@ -491,7 +491,7 @@ class FileHandler(SimpleHTTPRequestHandler):
 
     def list_directory(self, path):
         try:
-            with open(os.path.join(CODE_DIRECTORY, "template.html"), "r", encoding="utf-8") as f:
+            with open(os.path.join(CODE_DIRECTORY, "html", "template.html"), "r", encoding="utf-8") as f:
                 template = f.read()
         except FileNotFoundError:
             self.send_error_page(500, "Application template not found")
@@ -734,6 +734,8 @@ class FileHandler(SimpleHTTPRequestHandler):
                     json.dump(PROFILE_PASSWORDS, f, indent=2)
             except Exception as e:
                 return self.send_add_profile_form(error_msg="Failed to save profile password.")
+
+            get_profiles_list()
 
             # Redirect to profile selection after creation
             self.send_response(302)
@@ -1126,7 +1128,7 @@ class FileHandler(SimpleHTTPRequestHandler):
             # Build *non-recursive* listing
             html_listing, json_folder_files = self.build_folder_listing(folder_path, profile, folder)
 
-            template_path = os.path.join(CODE_DIRECTORY, "sharePublicFolder.html")
+            template_path = os.path.join(CODE_DIRECTORY, "html", "sharePublicFolder.html")
             with open(template_path, "r", encoding="utf-8") as f:
                 template = f.read()
 
@@ -1201,7 +1203,7 @@ class FileHandler(SimpleHTTPRequestHandler):
             for prof in profile_dirs:
                 profiles_html += f'<li><a href="/confirm-remove?profile={quote(prof)}">{prof.split("_")[0]}</a></li>'
 
-            template_path = os.path.join(CODE_DIRECTORY, "profileRemove.html")
+            template_path = os.path.join(CODE_DIRECTORY, "html", "profileRemove.html")
             with open(template_path, "r", encoding="utf-8") as f:
                 template = f.read()
 
@@ -1236,7 +1238,7 @@ class FileHandler(SimpleHTTPRequestHandler):
             error_msg = qs.get("error", [None])[0]
             error_html = f'<p style="color:#ff4444; font-weight:bold;">{error_msg}</p>' if error_msg else ""
 
-            template_path = os.path.join(CODE_DIRECTORY, "profileRemoveConfirm.html")
+            template_path = os.path.join(CODE_DIRECTORY, "html", "profileRemoveConfirm.html")
             try:
                 with open(template_path, "r", encoding="utf-8") as f:
                     html = f.read()

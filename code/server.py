@@ -20,6 +20,7 @@ import threading
 import mimetypes
 
 from errorUtil import send_error_page
+from profileLoginUtil import send_login_form
 from publicFolderUtil import share_public_folder
 from zipUtil import run_zip_job, run_zip_job_bulk
 from profileUtil import get_profile_dir, send_profile_selection, send_add_profile_form
@@ -60,32 +61,6 @@ def get_profiles_list():
             break
 
 class FileHandler(SimpleHTTPRequestHandler):
-
-    def send_password_form(self, profile, error_msg=None):
-        template_path = os.path.join(CODE_DIRECTORY, "html", "profileLogin.html")
-        try:
-            with open(template_path, "r", encoding="utf-8") as f:
-                html = f.read()
-        except FileNotFoundError:
-            send_error_page(self, 500, "Login template not found", CODE_DIRECTORY)
-            return
-
-        # Simple replacement
-        html = html.replace("{{profile}}", profile)
-        html = html.replace("{{profileSplit}}", profile.split("_")[0])
-        html = html.replace("{{error_msg}}", error_msg or "")
-        if error_msg:
-            html = html.replace("{% if error_msg %}", "").replace("{% endif %}", "")
-        else:
-            # Remove the error block if no error
-            html = html.replace("{% if error_msg %}", "<!--").replace("{% endif %}", "-->")
-
-        encoded = html.encode("utf-8")
-        self.send_response(200)
-        self.send_header("Content-type", "text/html")
-        self.send_header("Content-Length", str(len(encoded)))
-        self.end_headers()
-        self.wfile.write(encoded)
 
     def send_file_with_range(self, file_path):
         """Stream file with HTTP Range support for seeking."""
@@ -389,7 +364,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                 self.end_headers()
             else:
                 # Wrong password - show password form with error
-                self.send_password_form(profile, error_msg="Incorrect password")
+                send_login_form(self, profile, "Incorrect password", CODE_DIRECTORY)
             return
 
         if parsed_url.path == "/add-profile":
@@ -972,7 +947,7 @@ class FileHandler(SimpleHTTPRequestHandler):
 
         elif not authenticated:
             # User not authenticated for the profile, show password form
-            return self.send_password_form(profile)
+            return send_login_form(self, profile, None, CODE_DIRECTORY)
 
         self.profile_dir = get_profile_dir(self, PROFILE_ROOT)
         if not self.profile_dir:

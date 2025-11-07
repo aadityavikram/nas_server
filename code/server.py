@@ -22,6 +22,7 @@ import mimetypes
 from errorUtil import send_error_page
 from publicFolderUtil import share_public_folder
 from zipUtil import run_zip_job, run_zip_job_bulk
+from profileUtil import get_profile_dir, send_profile_selection, send_add_profile_form
 
 # Directory to serve storage
 PROFILE_ROOT = "/nas/storage/profiles"
@@ -59,79 +60,6 @@ def get_profiles_list():
             break
 
 class FileHandler(SimpleHTTPRequestHandler):
-
-    def get_profile_dir(self):
-        # Get profile from cookie
-        cookies = self.headers.get("Cookie", "")
-        profile = None
-        for part in cookies.split(";"):
-            if part.strip().startswith("profile="):
-                profile = part.strip().split("=")[1]
-                break
-
-        if not profile:
-            return None
-
-        profile_path = os.path.join(PROFILE_ROOT, profile)
-        if not os.path.isdir(profile_path):
-            return None
-
-        return profile_path
-
-    def send_profile_selection(self):
-        try:
-            profile_dirs = [d for d in os.listdir(PROFILE_ROOT)
-                            if os.path.isdir(os.path.join(PROFILE_ROOT, d)) and d in PROFILE_LIST]
-        except Exception as e:
-            send_error_page(self, 500, "Failed to read profiles", CODE_DIRECTORY)
-            return
-
-        template_path = os.path.join(CODE_DIRECTORY, "html", "profile.html")
-        try:
-            with open(template_path, "r", encoding="utf-8") as f:
-                html = f.read()
-        except FileNotFoundError:
-            send_error_page(self, 500, "Profile selection template not found", CODE_DIRECTORY)
-            return
-
-        # Build list of profiles
-        profiles_html = ""
-        profile_dirs.sort()
-        for prof in profile_dirs:
-            profiles_html += f'<a href="/?set_profile={quote(prof)}">{prof.split("_")[0]}</a>\n'
-
-        # Insert into template
-        html = html.replace("{{profiles}}", profiles_html)
-
-        encoded = html.encode("utf-8")
-        self.send_response(200)
-        self.send_header("Content-type", "text/html")
-        self.send_header("Content-Length", str(len(encoded)))
-        self.end_headers()
-        self.wfile.write(encoded)
-
-    def send_add_profile_form(self, error_msg=None):
-        template_path = os.path.join(CODE_DIRECTORY, "html", "profileAdd.html")
-        try:
-            with open(template_path, "r", encoding="utf-8") as f:
-                html = f.read()
-        except FileNotFoundError:
-            send_error_page(self, 500, "Add profile template not found", CODE_DIRECTORY)
-            return
-
-        if error_msg:
-            error_html = f'<div class="error">{error_msg}</div>'
-        else:
-            error_html = ''
-
-        html = html.replace("{{error_msg}}", error_html)
-
-        encoded = html.encode("utf-8")
-        self.send_response(200)
-        self.send_header("Content-type", "text/html")
-        self.send_header("Content-Length", str(len(encoded)))
-        self.end_headers()
-        self.wfile.write(encoded)
 
     def send_password_form(self, profile, error_msg=None):
         template_path = os.path.join(CODE_DIRECTORY, "html", "profileLogin.html")
@@ -276,7 +204,7 @@ class FileHandler(SimpleHTTPRequestHandler):
             send_error_page(self, 404, "No permission to list directory", CODE_DIRECTORY)
             return None
 
-        profile_dir = self.get_profile_dir()
+        profile_dir = get_profile_dir(self, PROFILE_ROOT)
         profile_name = os.path.basename(profile_dir) if profile_dir else ""
 
         parsed_url = urlparse(self.path)
@@ -286,7 +214,7 @@ class FileHandler(SimpleHTTPRequestHandler):
         file_list.sort()
         items = ""
         
-        rel_path = os.path.relpath(path, self.get_profile_dir())
+        rel_path = os.path.relpath(path, get_profile_dir(self, PROFILE_ROOT))
 
         # Normalize rel_path for URL
         url_rel_path = rel_path.replace(os.sep, '/')
@@ -427,8 +355,8 @@ class FileHandler(SimpleHTTPRequestHandler):
     def translate_path(self, path):
         path = urlparse(path).path
         path = os.path.normpath(unquote(path)).lstrip("/\\")
-        full_path = os.path.join(self.get_profile_dir(), path)
-        abs_base = os.path.abspath(self.get_profile_dir())
+        full_path = os.path.join(get_profile_dir(self, PROFILE_ROOT), path)
+        abs_base = os.path.abspath(get_profile_dir(self, PROFILE_ROOT))
         abs_path = os.path.abspath(full_path)
 
         if not abs_path.startswith(abs_base):
@@ -477,27 +405,27 @@ class FileHandler(SimpleHTTPRequestHandler):
             profile_password = post_params.get("profilePassword", [None])[0] or None
 
             if not profile_name:
-                return self.send_add_profile_form(error_msg="Profile name is required.")
+                return send_add_profile_form(self, "Profile name is required.", CODE_DIRECTORY)
 
             if not profile_name or "/" in profile_name or "\\" in profile_name:
-                self.send_add_profile_form(error_msg="Invalid profile name.")
+                send_add_profile_form(self, "Invalid profile name.", CODE_DIRECTORY)
                 return
 
             for prof in profile_dirs:
                 if prof.split("_")[0] == profile_name.split("_")[0]:
-                    self.send_add_profile_form(error_msg="Profile already exists.")
+                    send_add_profile_form(self, "Profile already exists.", CODE_DIRECTORY)
                     return
 
             profile_path = os.path.join(PROFILE_ROOT, profile_name)
 
             if os.path.exists(profile_path):
-                self.send_add_profile_form(error_msg="Profile already exists.")
+                send_add_profile_form(self, "Profile already exists.", CODE_DIRECTORY)
                 return
 
             try:
                 os.mkdir(profile_path)
             except Exception as e:
-                self.send_add_profile_form(error_msg=f"Failed to create profile: {e}")
+                send_add_profile_form(self, f"Failed to create profile: {e}", CODE_DIRECTORY)
                 return
 
             # Update the password dictionary and save back
@@ -506,7 +434,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                 with open(PROFILE_PASSWORDS_FILE, "w", encoding="utf-8") as f:
                     json.dump(PROFILE_PASSWORDS, f, indent=2)
             except Exception as e:
-                return self.send_add_profile_form(error_msg="Failed to save profile password.")
+                return send_add_profile_form(self, "Failed to save profile password.", CODE_DIRECTORY)
 
             get_profiles_list()
 
@@ -554,7 +482,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                         with open(PROFILE_PASSWORDS_FILE, "w", encoding="utf-8") as f:
                             json.dump(PROFILE_PASSWORDS, f, indent=2)
                     except Exception as e:
-                        return self.send_add_profile_form(error_msg="Failed to remove profile password.")
+                        return send_add_profile_form(self, "Failed to remove profile password.", CODE_DIRECTORY)
             except Exception as e:
                 send_error_page(self, 500, f"Failed to remove profile: {e}", CODE_DIRECTORY)
                 return
@@ -577,7 +505,7 @@ class FileHandler(SimpleHTTPRequestHandler):
 
             # Sanitize and create folder
             rel_path = os.path.normpath(unquote(folder_name)).lstrip("/")
-            file_path = os.path.abspath(os.path.join(self.get_profile_dir(), rel_path))
+            file_path = os.path.abspath(os.path.join(get_profile_dir(self, PROFILE_ROOT), rel_path))
             print("Path of new folder: ", file_path)
 
             try:
@@ -597,7 +525,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(b"Failed to create folder")
                 
         elif parsed_url.path == "/upload":
-            self.profile_dir = self.get_profile_dir()
+            self.profile_dir = get_profile_dir(self, PROFILE_ROOT)
             if not self.profile_dir:
                 send_error_page(self, 403, "Profile not selected", CODE_DIRECTORY)
                 return
@@ -633,10 +561,10 @@ class FileHandler(SimpleHTTPRequestHandler):
                 safe_rel_path = os.path.normpath(unquote(upload_path)).lstrip("/")
 
                 # Prevent escaping out of DIRECTORY
-                abs_upload_dir = os.path.abspath(os.path.join(self.get_profile_dir(), safe_rel_path))
+                abs_upload_dir = os.path.abspath(os.path.join(get_profile_dir(self, PROFILE_ROOT), safe_rel_path))
 
                 # Make sure it's still inside the DIRECTORY
-                if not abs_upload_dir.startswith(os.path.abspath(self.get_profile_dir())):
+                if not abs_upload_dir.startswith(os.path.abspath(get_profile_dir(self, PROFILE_ROOT))):
                     send_error_page(self, 400, "Invalid upload path", CODE_DIRECTORY)
                     return
 
@@ -679,11 +607,11 @@ class FileHandler(SimpleHTTPRequestHandler):
                 old_rel = os.path.normpath(unquote(old_path)).lstrip("/")
                 new_rel = os.path.normpath(unquote(new_path)).lstrip("/")
 
-                old_abs = os.path.abspath(os.path.join(self.get_profile_dir(), old_rel))
-                new_abs = os.path.abspath(os.path.join(self.get_profile_dir(), new_rel))
+                old_abs = os.path.abspath(os.path.join(get_profile_dir(self, PROFILE_ROOT), old_rel))
+                new_abs = os.path.abspath(os.path.join(get_profile_dir(self, PROFILE_ROOT), new_rel))
 
                 # Security check: ensure both are inside DIRECTORY
-                if not old_abs.startswith(os.path.abspath(self.get_profile_dir())) or not new_abs.startswith(os.path.abspath(self.get_profile_dir())):
+                if not old_abs.startswith(os.path.abspath(get_profile_dir(self, PROFILE_ROOT))) or not new_abs.startswith(os.path.abspath(get_profile_dir(self, PROFILE_ROOT))):
                     self.send_response(400)
                     self.end_headers()
                     self.wfile.write(b"Invalid path")
@@ -737,8 +665,8 @@ class FileHandler(SimpleHTTPRequestHandler):
                 abs_paths = []
                 for p in paths:
                     rel_path = os.path.normpath(unquote(p)).lstrip("/")
-                    abs_path = os.path.abspath(os.path.join(self.get_profile_dir(), rel_path))
-                    if not abs_path.startswith(os.path.abspath(self.get_profile_dir())):
+                    abs_path = os.path.abspath(os.path.join(get_profile_dir(self, PROFILE_ROOT), rel_path))
+                    if not abs_path.startswith(os.path.abspath(get_profile_dir(self, PROFILE_ROOT))):
                         continue
                     if not os.path.exists(abs_path):
                         continue
@@ -785,12 +713,12 @@ class FileHandler(SimpleHTTPRequestHandler):
                 return
 
             rel_path = os.path.normpath(unquote(filename)).lstrip("/")
-            file_path = os.path.abspath(os.path.join(self.get_profile_dir(), rel_path))
+            file_path = os.path.abspath(os.path.join(get_profile_dir(self, PROFILE_ROOT), rel_path))
             
             print(f"Request to delete: {rel_path}")
             print(f"Resolved path: {file_path}")
 
-            if not file_path.startswith(os.path.abspath(self.get_profile_dir())):
+            if not file_path.startswith(os.path.abspath(get_profile_dir(self, PROFILE_ROOT))):
                 self.send_response(400)
                 self.end_headers()
                 self.wfile.write(b"Invalid file path")
@@ -803,7 +731,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                 return
 
             # Prevent deletion of root directory
-            if os.path.abspath(file_path) == os.path.abspath(self.get_profile_dir()):
+            if os.path.abspath(file_path) == os.path.abspath(get_profile_dir(self, PROFILE_ROOT)):
                 self.send_response(400)
                 self.end_headers()
                 self.wfile.write(b"Cannot delete root directory")
@@ -837,13 +765,13 @@ class FileHandler(SimpleHTTPRequestHandler):
     def handle_details(self, parsed):
         params = parse_qs(parsed.query)
         file_path = params.get("path", [""])[0]
-        abs_path = os.path.normpath(os.path.join(self.get_profile_dir(), file_path.lstrip("/")))
+        abs_path = os.path.normpath(os.path.join(get_profile_dir(self, PROFILE_ROOT), file_path.lstrip("/")))
 
-        if not abs_path.startswith(self.get_profile_dir()) or not os.path.exists(abs_path):
+        if not abs_path.startswith(get_profile_dir(self, PROFILE_ROOT)) or not os.path.exists(abs_path):
             send_error_page(self, 404, "Not found", CODE_DIRECTORY)
             return
 
-        profile_dir = self.get_profile_dir()
+        profile_dir = get_profile_dir(self, PROFILE_ROOT)
         profile_name = os.path.basename(profile_dir) if profile_dir else ""
         profile_name = profile_name.split("_")[0]
 
@@ -875,7 +803,7 @@ class FileHandler(SimpleHTTPRequestHandler):
         qs = parse_qs(parsed_url.query)
         requested_path = unquote(parsed_url.path)
 
-        profile_dir = self.get_profile_dir()
+        profile_dir = get_profile_dir(self, PROFILE_ROOT)
         profile_name = os.path.basename(profile_dir) if profile_dir else ""
 
         # --- New: Handle /share?profile=<profile>&folder=<relative_path> ---
@@ -1004,7 +932,7 @@ class FileHandler(SimpleHTTPRequestHandler):
             return
 
         if parsed_url.path == "/add-profile":
-            self.send_add_profile_form()
+            send_add_profile_form(self, None, CODE_DIRECTORY)
             return
 
         if "set_profile" in qs:
@@ -1033,7 +961,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                     authenticated = True
 
         if not profile:
-            return self.send_profile_selection()
+            return send_profile_selection(self, PROFILE_ROOT, PROFILE_LIST, CODE_DIRECTORY)
 
         # Check if profile requires password
         profile_password = PROFILE_PASSWORDS.get(profile)
@@ -1046,9 +974,9 @@ class FileHandler(SimpleHTTPRequestHandler):
             # User not authenticated for the profile, show password form
             return self.send_password_form(profile)
 
-        self.profile_dir = self.get_profile_dir()
+        self.profile_dir = get_profile_dir(self, PROFILE_ROOT)
         if not self.profile_dir:
-            return self.send_profile_selection()
+            return send_profile_selection(self, PROFILE_ROOT, PROFILE_LIST, CODE_DIRECTORY)
 
         self.base_path = self.profile_dir
 
@@ -1089,9 +1017,9 @@ class FileHandler(SimpleHTTPRequestHandler):
                   return
 
                 rel_path = os.path.normpath(unquote(folder)).lstrip("/")
-                abs_path = os.path.abspath(os.path.join(self.get_profile_dir(), rel_path))
+                abs_path = os.path.abspath(os.path.join(get_profile_dir(self, PROFILE_ROOT), rel_path))
 
-                if not abs_path.startswith(os.path.abspath(self.get_profile_dir())) or not os.path.isdir(abs_path):
+                if not abs_path.startswith(os.path.abspath(get_profile_dir(self, PROFILE_ROOT))) or not os.path.isdir(abs_path):
                   self.send_response(400)
                   self.end_headers()
                   self.wfile.write(b"Invalid folder path")

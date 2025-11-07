@@ -308,7 +308,7 @@ class FileHandler(SimpleHTTPRequestHandler):
     def send_profile_selection(self):
         try:
             profile_dirs = [d for d in os.listdir(PROFILE_ROOT)
-                            if os.path.isdir(os.path.join(PROFILE_ROOT, d))]
+                            if os.path.isdir(os.path.join(PROFILE_ROOT, d)) and d in PROFILE_LIST]
         except Exception as e:
             self.send_error_page(500, "Failed to read profiles")
             return

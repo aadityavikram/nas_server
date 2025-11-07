@@ -7,17 +7,15 @@ import re
 import platform
 import subprocess
 
-TEMP_ZIP_DIRECTORY = "/nas/storage/temp/zips"
-
-def run_zip_job(abs_path, job_id, progress_store, zip_paths, cancelled_jobs):
+def run_zip_job(temp_zip_directory, abs_path, job_id, progress_store, zip_paths, cancelled_jobs):
     try:
-        create_zip_with_progress(abs_path, job_id, progress_store, zip_paths, cancelled_jobs)
+        create_zip_with_progress(temp_zip_directory, abs_path, job_id, progress_store, zip_paths, cancelled_jobs)
     except Exception as e:
         print(f"[Thread Error] Job {job_id}: {e}")
         traceback.print_exc()
         progress_store[job_id] = -1
 
-def create_zip_with_progress(abs_path, job_id, progress_store, zip_paths, cancelled_jobs):
+def create_zip_with_progress(temp_zip_directory, abs_path, job_id, progress_store, zip_paths, cancelled_jobs):
     try:
         folder_name = os.path.basename(abs_path)
         file_list = []
@@ -27,9 +25,9 @@ def create_zip_with_progress(abs_path, job_id, progress_store, zip_paths, cancel
         total_files = len(file_list)
         progress_store[job_id] = 0
 
-        os.makedirs(TEMP_ZIP_DIRECTORY, exist_ok=True)
+        os.makedirs(temp_zip_directory, exist_ok=True)
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".zip", dir=TEMP_ZIP_DIRECTORY) as tmp_zip:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".zip", dir=temp_zip_directory) as tmp_zip:
             with zipfile.ZipFile(tmp_zip.name, 'w', zipfile.ZIP_DEFLATED) as zipf:
                 for i, abs_file in enumerate(file_list):
                     if job_id in cancelled_jobs:
@@ -52,15 +50,15 @@ def create_zip_with_progress(abs_path, job_id, progress_store, zip_paths, cancel
         traceback.print_exc()
         progress_store[job_id] = -1  # Error indicator
 
-def run_zip_job_bulk(paths, job_id, progress_store, zip_paths, cancelled_jobs):
+def run_zip_job_bulk(temp_zip_directory, paths, job_id, progress_store, zip_paths, cancelled_jobs):
     try:
-        create_zip_bulk_with_progress(paths, job_id, progress_store, zip_paths, cancelled_jobs)
+        create_zip_bulk_with_progress(temp_zip_directory, paths, job_id, progress_store, zip_paths, cancelled_jobs)
     except Exception as e:
         print(f"[Thread Error] Job {job_id}: {e}")
         traceback.print_exc()
         progress_store[job_id] = -1
 
-def create_zip_bulk_with_progress(paths, job_id, progress_store, zip_paths, cancelled_jobs):
+def create_zip_bulk_with_progress(temp_zip_directory, paths, job_id, progress_store, zip_paths, cancelled_jobs):
     try:
         # Collect all files along with their relative path inside ZIP
         files_to_zip = []
@@ -82,9 +80,9 @@ def create_zip_bulk_with_progress(paths, job_id, progress_store, zip_paths, canc
 
         total_files = len(files_to_zip)
         progress_store[job_id] = 0
-        os.makedirs(TEMP_ZIP_DIRECTORY, exist_ok=True)
+        os.makedirs(temp_zip_directory, exist_ok=True)
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".zip", dir=TEMP_ZIP_DIRECTORY) as tmp_zip:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".zip", dir=temp_zip_directory) as tmp_zip:
             with zipfile.ZipFile(tmp_zip.name, 'w', zipfile.ZIP_DEFLATED) as zipf:
                 for i, (abs_file, rel_path_in_zip) in enumerate(files_to_zip):
                     if job_id in cancelled_jobs:

@@ -31,6 +31,8 @@ PROFILE_PASSWORDS_FILE = "/nas/storage/code/profiles.json"
 # Directory to serve code
 CODE_DIRECTORY = "/nas/storage/code"
 
+TEMP_ZIP_DIRECTORY = "/nas/storage/temp/zips"
+
 PORT = 8888
 
 progress_store = {}  # progress %
@@ -752,7 +754,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                 job_id = str(uuid.uuid4())
 
                 # Start zip creation in a thread
-                threading.Thread(target=run_zip_job_bulk, args=(abs_paths, job_id, progress_store, zip_paths, cancelled_jobs)).start()
+                threading.Thread(target=run_zip_job_bulk, args=(TEMP_ZIP_DIRECTORY, abs_paths, job_id, progress_store, zip_paths, cancelled_jobs)).start()
 
                 # Respond immediately with job_id
                 self.send_response(200)
@@ -1099,7 +1101,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                 job_id = str(uuid.uuid4())
 
                 # Start zip creation in a thread
-                threading.Thread(target=run_zip_job, args=(abs_path, job_id, progress_store, zip_paths, cancelled_jobs)).start()
+                threading.Thread(target=run_zip_job, args=(TEMP_ZIP_DIRECTORY, abs_path, job_id, progress_store, zip_paths, cancelled_jobs)).start()
 
                 # Respond immediately with job_id
                 self.send_response(200)

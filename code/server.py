@@ -1,27 +1,25 @@
 #!/usr/bin/env python3
 
 import os
-from http.server import HTTPServer, SimpleHTTPRequestHandler
-from urllib.parse import quote, unquote, urlparse, parse_qs
-from io import BytesIO
 import cgi
-import socketserver
-import traceback
-import shutil
-import zipfile
-import tempfile
-from datetime import datetime
 import json
+import shutil
+import traceback
+import socketserver
+from io import BytesIO
+from datetime import datetime
+from urllib.parse import quote, unquote, urlparse, parse_qs
+from http.server import HTTPServer, SimpleHTTPRequestHandler
 
-import platform
-import subprocess
 import re
-import signal
 import time
-import threading
 import uuid
+import signal
+import threading
 
 import mimetypes
+
+from zipUtil import run_zip_job, run_zip_job_bulk
 
 # Directory to serve storage
 PROFILE_ROOT = "/nas/storage/profiles"
@@ -36,8 +34,6 @@ PORT = 8888
 progress_store = {}  # progress %
 zip_paths = {}       # zip file path
 cancelled_jobs = set()
-
-TEMP_ZIP_DIRECTORY = "/nas/storage/temp/zips"
 
 def load_profile_passwords():
     global PROFILE_PASSWORDS
@@ -57,150 +53,6 @@ def get_profiles_list():
         if profile.startswith("Public"):
             PUBLIC_PROFILE = profile
             break
-
-def run_zip_job(abs_path, job_id):
-    try:
-        create_zip_with_progress(abs_path, job_id)
-    except Exception as e:
-        print(f"[Thread Error] Job {job_id}: {e}")
-        traceback.print_exc()
-        progress_store[job_id] = -1
-
-def create_zip_with_progress(abs_path, job_id):
-    try:
-        folder_name = os.path.basename(abs_path)
-        file_list = []
-        for root, dirs, files in os.walk(abs_path):
-            for file in files:
-                file_list.append(os.path.join(root, file))
-        total_files = len(file_list)
-        progress_store[job_id] = 0
-
-        os.makedirs(TEMP_ZIP_DIRECTORY, exist_ok=True)
-
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".zip", dir=TEMP_ZIP_DIRECTORY) as tmp_zip:
-            with zipfile.ZipFile(tmp_zip.name, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                for i, abs_file in enumerate(file_list):
-                    if job_id in cancelled_jobs:
-                        print(f"[Zip Cancelled] Job {job_id}")
-                        progress_store[job_id] = -1
-
-                        # cleanup
-                        cancelled_jobs.remove(job_id)
-                        progress_store.pop(job_id, None)
-                        return
-
-                    rel_file = os.path.relpath(abs_file, abs_path)
-                    zipf.write(abs_file, arcname=os.path.join(folder_name, rel_file))
-
-                    # Update progress
-                    progress_store[job_id] = int((i+1) / total_files * 100) if total_files else 100
-        zip_paths[job_id] = tmp_zip.name
-    except Exception as e:
-        print(f"Error in create_zip_with_progress: {e}")
-        traceback.print_exc()
-        progress_store[job_id] = -1  # Error indicator
-
-def run_zip_job_bulk(paths, job_id):
-    try:
-        create_zip_bulk_with_progress(paths, job_id)
-    except Exception as e:
-        print(f"[Thread Error] Job {job_id}: {e}")
-        traceback.print_exc()
-        progress_store[job_id] = -1
-
-def create_zip_bulk_with_progress(paths, job_id):
-    try:
-        # Collect all files along with their relative path inside ZIP
-        files_to_zip = []
-
-        for path in paths:
-            abs_path = os.path.abspath(path)
-            name_in_zip = os.path.basename(abs_path)  # top-level folder or file name
-            if os.path.isdir(abs_path):
-                for root, dirs, files in os.walk(abs_path):
-                    for file in files:
-                        abs_file = os.path.join(root, file)
-                        rel_path_in_zip = os.path.join(
-                            name_in_zip,
-                            os.path.relpath(abs_file, abs_path)
-                        )
-                        files_to_zip.append((abs_file, rel_path_in_zip))
-            elif os.path.isfile(abs_path):
-                files_to_zip.append((abs_path, name_in_zip))  # single file at root
-
-        total_files = len(files_to_zip)
-        progress_store[job_id] = 0
-        os.makedirs(TEMP_ZIP_DIRECTORY, exist_ok=True)
-
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".zip", dir=TEMP_ZIP_DIRECTORY) as tmp_zip:
-            with zipfile.ZipFile(tmp_zip.name, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                for i, (abs_file, rel_path_in_zip) in enumerate(files_to_zip):
-                    if job_id in cancelled_jobs:
-                        print(f"[Zip Cancelled] Job {job_id}")
-                        progress_store[job_id] = -1
-                        cancelled_jobs.remove(job_id)
-                        progress_store.pop(job_id, None)
-                        return
-
-                    zipf.write(abs_file, arcname=rel_path_in_zip)
-                    progress_store[job_id] = int((i+1) / total_files * 100) if total_files else 100
-
-        zip_paths[job_id] = tmp_zip.name
-
-    except Exception as e:
-        print(f"Error in create_zip_bulk_with_progress: {e}")
-        traceback.print_exc()
-        progress_store[job_id] = -1
-
-# --- Add helper functions for process‐killing ---
-def kill_process_on_port(port):
-    system = platform.system()
-
-    if system == "Windows":
-        # Get PID listening on port
-        try:
-            result = subprocess.check_output(
-                f"netstat -ano | findstr :{port}", shell=True, text=True)
-            lines = result.strip().split('\n')
-            pids = set()
-            for line in lines:
-                parts = line.strip().split()
-                if parts[-1].isdigit():
-                    pids.add(parts[-1])
-            if not pids:
-                print(f"No process found on port {port}")
-                return
-            for pid in pids:
-                print(f"Killing process {pid} on port {port}")
-                subprocess.run(f"taskkill /PID {pid} /F", shell=True)
-        except subprocess.CalledProcessError:
-            print(f"No process found on port {port}")
-
-    else:  # Linux/macOS
-        try:
-            # Run netstat to find processes listening on the port
-            result = subprocess.check_output(f"netstat -nlp | grep :{port}", shell=True, universal_newlines=True)
-
-            # Each line looks like:
-            # tcp        0      0 0.0.0.0:8888            0.0.0.0:*               LISTEN      1234/python3
-            # Extract PIDs from output lines
-            pids = set()
-            for line in result.strip().split('\n'):
-                match = re.search(r'LISTEN\s+(\d+)/', line)
-                if match:
-                    pids.add(match.group(1))
-
-            if not pids:
-                print(f"No process found on port {port}")
-                return
-
-            for pid in pids:
-                print(f"Killing process {pid} on port {port}")
-                subprocess.run(f"kill -9 {pid}", shell=True)
-
-        except subprocess.CalledProcessError:
-            print(f"No process found on port {port}")
 
 class FileHandler(SimpleHTTPRequestHandler):
 
@@ -981,7 +833,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                 job_id = str(uuid.uuid4())
 
                 # Start zip creation in a thread
-                threading.Thread(target=run_zip_job_bulk, args=(abs_paths, job_id)).start()
+                threading.Thread(target=run_zip_job_bulk, args=(abs_paths, job_id, progress_store, zip_paths, cancelled_jobs)).start()
 
                 # Respond immediately with job_id
                 self.send_response(200)
@@ -1364,7 +1216,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                 job_id = str(uuid.uuid4())
 
                 # Start zip creation in a thread
-                threading.Thread(target=run_zip_job, args=(abs_path, job_id)).start()
+                threading.Thread(target=run_zip_job, args=(abs_path, job_id, progress_store, zip_paths, cancelled_jobs)).start()
 
                 # Respond immediately with job_id
                 self.send_response(200)

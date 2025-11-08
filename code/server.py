@@ -19,6 +19,7 @@ import threading
 
 import mimetypes
 
+from loginUtil import login
 from errorUtil import send_error_page
 from profileLoginUtil import send_login_form
 from streamingUtil import send_file_with_range
@@ -266,29 +267,7 @@ class FileHandler(SimpleHTTPRequestHandler):
         parsed_url = urlparse(self.path)
 
         if parsed_url.path == "/login":
-            content_length = int(self.headers.get('Content-Length', 0))
-            post_data = self.rfile.read(content_length).decode('utf-8')
-            params = parse_qs(post_data)
-
-            profile = params.get("profile", [None])[0]
-            password = params.get("password", [None])[0]
-
-            if not profile or not password:
-                send_error_page(self, 400, "Missing profile or password", CODE_DIRECTORY)
-                return
-
-            expected_password = PROFILE_PASSWORDS.get(profile)
-            if expected_password is not None and password == expected_password:
-                # Password is correct - set authenticated cookie and redirect to /
-                self.send_response(302)
-                self.send_header("Set-Cookie", f"profile={profile}; Path=/")
-                self.send_header("Set-Cookie", "authenticated=yes; Path=/")
-                self.send_header("Location", "/")
-                self.end_headers()
-            else:
-                # Wrong password - show password form with error
-                send_login_form(self, profile, "Incorrect password", CODE_DIRECTORY)
-            return
+            login(self, PROFILE_PASSWORDS, CODE_DIRECTORY)
 
         if parsed_url.path == "/add-profile":
             profile_dirs = [d for d in os.listdir(PROFILE_ROOT)

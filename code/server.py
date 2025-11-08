@@ -20,6 +20,7 @@ import threading
 import mimetypes
 
 from errorUtil import send_error_page
+from profileCreationUtil import create_profile
 from streamingUtil import send_file_with_range
 from publicFolderUtil import share_public_folder
 from zipUtil import run_zip_job, run_zip_job_bulk
@@ -269,40 +270,7 @@ class FileHandler(SimpleHTTPRequestHandler):
             login(self, PROFILE_PASSWORDS, CODE_DIRECTORY)
 
         if parsed_url.path == "/add-profile":
-            profile_dirs = [d for d in os.listdir(PROFILE_ROOT)
-                                        if os.path.isdir(os.path.join(PROFILE_ROOT, d))]
-
-            content_length = int(self.headers.get('Content-Length', 0))
-            post_data = self.rfile.read(content_length).decode('utf-8')
-            post_params = parse_qs(post_data)
-
-            profile_name = post_params.get("profileName", [""])[0].strip()
-            profile_name = f"{profile_name}_{uuid.uuid4()}"
-            profile_password = post_params.get("profilePassword", [None])[0] or None
-
-            if not profile_name:
-                return send_add_profile_form(self, "Profile name is required.", CODE_DIRECTORY)
-
-            if not profile_name or "/" in profile_name or "\\" in profile_name:
-                send_add_profile_form(self, "Invalid profile name.", CODE_DIRECTORY)
-                return
-
-            for prof in profile_dirs:
-                if prof.split("_")[0] == profile_name.split("_")[0]:
-                    send_add_profile_form(self, "Profile already exists.", CODE_DIRECTORY)
-                    return
-
-            profile_path = os.path.join(PROFILE_ROOT, profile_name)
-
-            if os.path.exists(profile_path):
-                send_add_profile_form(self, "Profile already exists.", CODE_DIRECTORY)
-                return
-
-            try:
-                os.mkdir(profile_path)
-            except Exception as e:
-                send_add_profile_form(self, f"Failed to create profile: {e}", CODE_DIRECTORY)
-                return
+            profile_name, profile_password = create_profile(self, PROFILE_ROOT, CODE_DIRECTORY)
 
             # Update the password dictionary and save back
             PROFILE_PASSWORDS[profile_name] = profile_password

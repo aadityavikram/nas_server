@@ -20,6 +20,7 @@ import threading
 import mimetypes
 
 from errorUtil import send_error_page
+from profileRemovalUtil import remove_profile
 from profileCreationUtil import create_profile
 from streamingUtil import send_file_with_range
 from publicFolderUtil import share_public_folder
@@ -270,7 +271,10 @@ class FileHandler(SimpleHTTPRequestHandler):
             login(self, PROFILE_PASSWORDS, CODE_DIRECTORY)
 
         if parsed_url.path == "/add-profile":
-            profile_name, profile_password = create_profile(self, PROFILE_ROOT, CODE_DIRECTORY)
+            response = create_profile(self, PROFILE_ROOT, CODE_DIRECTORY)
+            if response is None:
+                return
+            profile_name, profile_password = response
 
             # Update the password dictionary and save back
             PROFILE_PASSWORDS[profile_name] = profile_password
@@ -289,34 +293,10 @@ class FileHandler(SimpleHTTPRequestHandler):
             return
 
         if parsed_url.path == "/remove-profile":
-            content_length = int(self.headers.get('Content-Length', 0))
-            post_data = self.rfile.read(content_length).decode('utf-8')
-            post_params = parse_qs(post_data)
-
-            if "profile" not in post_params:
-                send_error_page(self, 400, "Profile not specified", CODE_DIRECTORY)
+            response = remove_profile(self, PROFILE_ROOT, PROFILE_PASSWORDS, CODE_DIRECTORY)
+            if response is None:
                 return
-
-            profile_to_remove = post_params["profile"][0]
-            password = None
-            if "password" in post_params:
-                password = post_params["password"][0]
-            profile_path = os.path.join(PROFILE_ROOT, profile_to_remove)
-
-            if not os.path.isdir(profile_path):
-                send_error_page(self, 404, "Profile not found", CODE_DIRECTORY)
-                return
-
-            expected_password = PROFILE_PASSWORDS.get(profile_to_remove)
-
-            # Check password if a password is required
-            if expected_password is not None:
-                if password != expected_password:
-                    # Redirect back to confirmation with error
-                    self.send_response(302)
-                    self.send_header("Location", f"/confirm-remove?profile={quote(profile_to_remove)}&error=Invalid+password")
-                    self.end_headers()
-                    return
+            profile_path, profile_to_remove = response
 
             try:
                 shutil.rmtree(profile_path)

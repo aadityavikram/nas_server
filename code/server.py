@@ -19,12 +19,11 @@ import threading
 
 import mimetypes
 
-from loginUtil import login
 from errorUtil import send_error_page
-from profileLoginUtil import send_login_form
 from streamingUtil import send_file_with_range
 from publicFolderUtil import share_public_folder
 from zipUtil import run_zip_job, run_zip_job_bulk
+from profileLoginUtil import send_login_form, login
 from profileUtil import get_profile_dir, send_profile_selection, send_add_profile_form
 
 # Directory to serve storage

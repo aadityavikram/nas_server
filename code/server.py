@@ -21,6 +21,7 @@ import mimetypes
 
 from errorUtil import send_error_page
 from profileLoginUtil import send_login_form
+from streamingUtil import send_file_with_range
 from publicFolderUtil import share_public_folder
 from zipUtil import run_zip_job, run_zip_job_bulk
 from profileUtil import get_profile_dir, send_profile_selection, send_add_profile_form
@@ -62,84 +63,6 @@ def get_profiles_list():
 
 class FileHandler(SimpleHTTPRequestHandler):
 
-    def send_file_with_range(self, file_path):
-        """Stream file with HTTP Range support for seeking."""
-        try:
-            file_size = os.path.getsize(file_path)
-            mime_type, _ = mimetypes.guess_type(file_path)
-            if not mime_type:
-                mime_type = "application/octet-stream"
-
-            # Check if client sent a Range header
-            range_header = self.headers.get("Range")
-            if range_header:
-                # Parse Range: bytes=start-end
-                m = re.match(r"bytes=(\d*)-(\d*)", range_header)
-                if not m:
-                    send_error(self, 400, "Invalid Range header", CODE_DIRECTORY)
-                    return
-
-                start, end = m.groups()
-                start = int(start) if start else 0
-                end = int(end) if end else file_size - 1
-
-                if start >= file_size:
-                    send_error(self, 416, "Requested Range Not Satisfiable", CODE_DIRECTORY)
-                    return
-
-                # Clamp end to file size
-                end = min(end, file_size - 1)
-                chunk_size = end - start + 1
-
-                self.send_response(206)  # Partial Content
-                self.send_header("Content-Type", mime_type)
-                self.send_header("Content-Range", f"bytes {start}-{end}/{file_size}")
-                self.send_header("Content-Length", str(chunk_size))
-                self.send_header("Accept-Ranges", "bytes")
-                self.end_headers()
-
-                with open(file_path, "rb") as f:
-                    f.seek(start)
-                    remaining = chunk_size
-                    while remaining > 0:
-                        read_size = min(32 * 1024, remaining)
-                        data = f.read(read_size)
-                        if not data:
-                            break
-                        try:
-                            self.wfile.write(data)
-                            self.wfile.flush()
-                        except BrokenPipeError:
-                            print("Client disconnected during range transfer.")
-                            break
-                        remaining -= len(data)
-
-            else:
-                # No Range header — send full file
-                self.send_response(200)
-                self.send_header("Content-Type", mime_type)
-                self.send_header("Content-Length", str(file_size))
-                self.send_header("Accept-Ranges", "bytes")
-                self.end_headers()
-
-                with open(file_path, "rb") as f:
-                    while True:
-                        data = f.read(32 * 1024)
-                        if not data:
-                            break
-                        try:
-                            self.wfile.write(data)
-                            self.wfile.flush()
-                        except BrokenPipeError:
-                            print("Client disconnected during full transfer.")
-                            break
-
-        except Exception as e:
-            try:
-                send_error(self, 500, f"Error streaming file: {e}", CODE_DIRECTORY)
-            except BrokenPipeError:
-                pass
-
     def load_profile_file_dir(self, file_path):
         if os.path.isdir(file_path):
             print("Is directory")
@@ -156,7 +79,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                 mime_type = "application/octet-stream"
 
             try:
-                self.send_file_with_range(file_path)
+                send_file_with_range(self, file_path, CODE_DIRECTORY)
             except Exception as e:
                 send_error_page(self, 500, f"Error reading file: {e}", CODE_DIRECTORY)
                 return
@@ -1132,7 +1055,7 @@ class FileHandler(SimpleHTTPRequestHandler):
                 path = self.translate_path(self.path)
                 if os.path.isfile(path):
                     try:
-                        self.send_file_with_range(path)
+                        send_file_with_range(self, path, CODE_DIRECTORY)
                     except Exception as e:
                         send_error_page(self, 500, f"Error reading file: {e}", CODE_DIRECTORY)
                         return

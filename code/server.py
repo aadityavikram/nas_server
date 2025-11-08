@@ -20,6 +20,7 @@ import threading
 import mimetypes
 
 from errorUtil import send_error_page
+from folderCreationUtil import create_folder
 from profileRemovalUtil import remove_profile
 from profileCreationUtil import create_profile
 from streamingUtil import send_file_with_range
@@ -318,35 +319,7 @@ class FileHandler(SimpleHTTPRequestHandler):
             return
 
         if parsed_url.path == "/create-folder":
-            query = parse_qs(parsed_url.query)
-            folder_name = query.get("name", [None])[0]
-
-            if not folder_name:
-                self.send_response(400)
-                self.end_headers()
-                self.wfile.write(b"Missing folder name")
-                return
-
-            # Sanitize and create folder
-            rel_path = os.path.normpath(unquote(folder_name)).lstrip("/")
-            file_path = os.path.abspath(os.path.join(get_profile_dir(self, PROFILE_ROOT), rel_path))
-            print("Path of new folder: ", file_path)
-
-            try:
-                os.makedirs(file_path, mode=0o755, exist_ok=False)
-                self.send_response(200)
-                self.end_headers()
-                self.wfile.write(b"Folder created")
-            except FileExistsError:
-                self.send_response(409)
-                self.end_headers()
-                self.wfile.write(b"Folder already exists")
-            except Exception as e:
-                print("Error creating folder:", e)
-                traceback.print_exc()
-                self.send_response(500)
-                self.end_headers()
-                self.wfile.write(b"Failed to create folder")
+            create_folder(self, parsed_url, PROFILE_ROOT)
                 
         elif parsed_url.path == "/upload":
             self.profile_dir = get_profile_dir(self, PROFILE_ROOT)

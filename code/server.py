@@ -19,6 +19,7 @@ import threading
 
 import mimetypes
 
+from deleteUtil import delete
 from logoutUtil import logout
 from renameUtil import rename
 from uploadUtil import upload
@@ -343,60 +344,7 @@ class FileHandler(SimpleHTTPRequestHandler):
     def do_DELETE(self):
         parsed_url = urlparse(self.path)
         if parsed_url.path == "/delete":
-            query = parse_qs(parsed_url.query)
-            filename = query.get("file", [None])[0]
-
-            if not filename:
-                self.send_response(400)
-                self.end_headers()
-                self.wfile.write(b"Missing file parameter")
-                return
-
-            rel_path = os.path.normpath(unquote(filename)).lstrip("/")
-            file_path = os.path.abspath(os.path.join(get_profile_dir(self, PROFILE_ROOT), rel_path))
-            
-            print(f"Request to delete: {rel_path}")
-            print(f"Resolved path: {file_path}")
-
-            if not file_path.startswith(os.path.abspath(get_profile_dir(self, PROFILE_ROOT))):
-                self.send_response(400)
-                self.end_headers()
-                self.wfile.write(b"Invalid file path")
-                return
-
-            if not os.path.exists(file_path):
-                self.send_response(404)
-                self.end_headers()
-                self.wfile.write(b"File or folder not found")
-                return
-
-            # Prevent deletion of root directory
-            if os.path.abspath(file_path) == os.path.abspath(get_profile_dir(self, PROFILE_ROOT)):
-                self.send_response(400)
-                self.end_headers()
-                self.wfile.write(b"Cannot delete root directory")
-                return
-
-            try:
-                if os.path.isfile(file_path):
-                    os.remove(file_path)
-                elif os.path.isdir(file_path):
-                    shutil.rmtree(file_path)  # recursive delete
-                else:
-                    self.send_response(400)
-                    self.end_headers()
-                    self.wfile.write(b"Invalid file type")
-                    return
-
-                self.send_response(200)
-                self.end_headers()
-                self.wfile.write(b"Deleted")
-            except Exception as e:
-                print("Error while deleting: ", e)
-                traceback.print_exc()
-                self.send_response(500)
-                self.end_headers()
-                self.wfile.write(b"Failed to delete")
+            delete(self, parsed_url, PROFILE_ROOT)
 
         else:
             self.send_response(404)

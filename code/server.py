@@ -19,6 +19,7 @@ import threading
 
 import mimetypes
 
+from logoutUtil import logout
 from renameUtil import rename
 from uploadUtil import upload
 from errorUtil import send_error_page
@@ -330,12 +331,8 @@ class FileHandler(SimpleHTTPRequestHandler):
             rename(self, PROFILE_ROOT)
 
         elif parsed_url.path == "/logout":
-            threading.Thread(target=shutdown_and_kill).start()
-            self.send_response(303)
-            self.send_header("Set-Cookie", "profile=; Max-Age=0; Path=/")  # Clear cookie
-            self.send_header("Set-Cookie", "authenticated=; Max-Age=0; Path=/")  # Clear auth cookie
-            self.end_headers()
-            return
+            logout(self, os.getpid())
+
         elif parsed_url.path == "/bulk-download-zip":
             bulk_download_zip(self, PROFILE_ROOT, TEMP_ZIP_DIRECTORY, progress_store, zip_paths, cancelled_jobs)
 
@@ -780,15 +777,6 @@ class FileHandler(SimpleHTTPRequestHandler):
                 print("Client disconnected early (ConnectionResetError)")
             except Exception as e:
                 print("Unexpected error in do_GET():", e)
-
-def shutdown_and_kill():
-    # Wait a moment so response is sent before killing
-    time.sleep(1)
-
-    # Kill this server's process or process on port 8888
-    # Assuming current process:
-    print(f'Process ID: {os.getpid}')
-    os.kill(os.getpid(), signal.SIGTERM)
 
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
     daemon_threads = True  # threads exit when main thread exits

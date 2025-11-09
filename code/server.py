@@ -83,7 +83,7 @@ class FileHandler(SimpleHTTPRequestHandler):
         parsed_url = urlparse(self.path)
 
         if parsed_url.path == "/login":
-            login(self, PROFILE_PASSWORDS, CODE_DIRECTORY)
+            return login(self, PROFILE_PASSWORDS, CODE_DIRECTORY)
 
         if parsed_url.path == "/add-profile":
             response = create_profile(self, PROFILE_ROOT, CODE_DIRECTORY)
@@ -142,7 +142,7 @@ class FileHandler(SimpleHTTPRequestHandler):
             rename(self, PROFILE_ROOT)
 
         elif parsed_url.path == "/logout":
-            logout(self, os.getpid())
+            return logout(self, os.getpid())
 
         elif parsed_url.path == "/bulk-download-zip":
             bulk_download_zip(self, PROFILE_ROOT, TEMP_ZIP_DIRECTORY, progress_store, zip_paths, cancelled_jobs)
@@ -206,7 +206,7 @@ class FileHandler(SimpleHTTPRequestHandler):
 
         # --- New: Handle /share?profile=<profile>&folder=<relative_path> ---
         if requested_path == "/share":
-            share_public_folder(self, qs, PROFILE_ROOT, CODE_DIRECTORY)
+            return share_public_folder(self, qs, PROFILE_ROOT, CODE_DIRECTORY)
 
         # ---  Serve files from public profile without authentication ---
         if requested_path.startswith(f"/{PUBLIC_PROFILE}/"):

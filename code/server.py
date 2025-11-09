@@ -19,6 +19,7 @@ import threading
 
 import mimetypes
 
+from uploadUtil import upload
 from errorUtil import send_error_page
 from folderCreationUtil import create_folder
 from profileRemovalUtil import remove_profile
@@ -320,71 +321,10 @@ class FileHandler(SimpleHTTPRequestHandler):
 
         if parsed_url.path == "/create-folder":
             create_folder(self, parsed_url, PROFILE_ROOT)
-                
+
         elif parsed_url.path == "/upload":
-            self.profile_dir = get_profile_dir(self, PROFILE_ROOT)
-            if not self.profile_dir:
-                send_error_page(self, 403, "Profile not selected", CODE_DIRECTORY)
-                return
-            query = parse_qs(parsed_url.query)
-            ctype, pdict = cgi.parse_header(self.headers.get('Content-Type'))
-            if ctype == 'multipart/form-data':
-                pdict['boundary'] = bytes(pdict['boundary'], "utf-8")
-                pdict['CONTENT-LENGTH'] = int(self.headers.get('Content-Length'))
-                try:
-                    form = cgi.FieldStorage(fp=self.rfile,
-                                            headers=self.headers,
-                                            environ={'REQUEST_METHOD': 'POST'},
-                                            keep_blank_values=True)
-                except Exception as e:
-                    send_error_page(self, 400, f"Error parsing form data: {e}", CODE_DIRECTORY)
-                    return
+            upload(self, parsed_url, PROFILE_ROOT, CODE_DIRECTORY)
 
-                if "file" not in form:
-                    send_error_page(self, 400, "No file field in form", CODE_DIRECTORY)
-                    return
-
-                file_item = form["file"]
-
-                if not file_item.filename:
-                    send_error_page(self, 400, "No filename provided", CODE_DIRECTORY)
-                    return
-
-                # Sanitize filename to avoid directory traversal attacks
-                filename = os.path.basename(file_item.filename)
-
-                # Save file to DIRECTORY
-                upload_path = query.get("path", ["/"])[0]  # Default to root if not provided
-                safe_rel_path = os.path.normpath(unquote(upload_path)).lstrip("/")
-
-                # Prevent escaping out of DIRECTORY
-                abs_upload_dir = os.path.abspath(os.path.join(get_profile_dir(self, PROFILE_ROOT), safe_rel_path))
-
-                # Make sure it's still inside the DIRECTORY
-                if not abs_upload_dir.startswith(os.path.abspath(get_profile_dir(self, PROFILE_ROOT))):
-                    send_error_page(self, 400, "Invalid upload path", CODE_DIRECTORY)
-                    return
-
-                try:
-                    os.makedirs(abs_upload_dir, exist_ok=True)
-                except Exception as e:
-                    send_error_page(self, 500, f"Failed to create directories: {e}", CODE_DIRECTORY)
-                    return
-
-                filepath = os.path.join(abs_upload_dir, filename)
-
-                try:
-                    with open(filepath, 'wb') as f:
-                        data = file_item.file.read()
-                        f.write(data)
-                except Exception as e:
-                    send_error_page(self, 500, f"Failed to save file: {e}", CODE_DIRECTORY)
-                    return
-
-                # Redirect back to the main page (file listing)
-                self.send_response(303)  # See Other
-                self.send_header('Location', '/')
-                self.end_headers()
         elif parsed_url.path == "/rename":
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length)

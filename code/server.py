@@ -27,8 +27,8 @@ from profileRemovalUtil import remove_profile
 from profileCreationUtil import create_profile
 from streamingUtil import send_file_with_range
 from publicFolderUtil import share_public_folder
-from zipUtil import run_zip_job, run_zip_job_bulk
 from profileLoginUtil import send_login_form, login
+from zipDownloadUtil import download_zip, bulk_download_zip
 from profileUtil import get_profile_dir, send_profile_selection, send_add_profile_form
 
 # Directory to serve storage
@@ -337,53 +337,8 @@ class FileHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             return
         elif parsed_url.path == "/bulk-download-zip":
-            try:
-                # Expect JSON POST
-                content_length = int(self.headers.get("Content-Length", 0))
-                body = self.rfile.read(content_length)
-                data = json.loads(body.decode())
+            bulk_download_zip(self, PROFILE_ROOT, TEMP_ZIP_DIRECTORY, progress_store, zip_paths, cancelled_jobs)
 
-                paths = data.get("paths", [])
-                if not paths or not isinstance(paths, list):
-                    self.send_response(400)
-                    self.end_headers()
-                    self.wfile.write(b"Missing or invalid paths parameter")
-                    return
-
-                abs_paths = []
-                for p in paths:
-                    rel_path = os.path.normpath(unquote(p)).lstrip("/")
-                    abs_path = os.path.abspath(os.path.join(get_profile_dir(self, PROFILE_ROOT), rel_path))
-                    if not abs_path.startswith(os.path.abspath(get_profile_dir(self, PROFILE_ROOT))):
-                        continue
-                    if not os.path.exists(abs_path):
-                        continue
-                    abs_paths.append(abs_path)
-
-                if not abs_paths:
-                    self.send_response(400)
-                    self.end_headers()
-                    self.wfile.write(b"No valid files or folders to zip")
-                    return
-
-                # Generate a job id
-                job_id = str(uuid.uuid4())
-
-                # Start zip creation in a thread
-                threading.Thread(target=run_zip_job_bulk, args=(TEMP_ZIP_DIRECTORY, abs_paths, job_id, progress_store, zip_paths, cancelled_jobs)).start()
-
-                # Respond immediately with job_id
-                self.send_response(200)
-                self.send_header("Content-Type", "application/json")
-                self.end_headers()
-                self.wfile.write(f'{{"job_id": "{job_id}"}}'.encode())
-
-            except Exception as e:
-                print("Error initiating bulk zip:", e)
-                traceback.print_exc()
-                self.send_response(500)
-                self.end_headers()
-                self.wfile.write(b"Failed to initiate bulk zip")
         else:
             self.send_response(404)
             self.end_headers()
@@ -693,43 +648,10 @@ class FileHandler(SimpleHTTPRequestHandler):
                 return
         if parsed_url.path == "/details":
             return self.handle_details(parsed_url)
+
         elif parsed_url.path == "/download-zip":
-            try:
-                query = parse_qs(parsed_url.query)
-                folder = query.get("folder", [None])[0]
+            download_zip(self, parsed_url, PROFILE_ROOT, TEMP_ZIP_DIRECTORY, progress_store, zip_paths, cancelled_jobs)
 
-                if not folder:
-                  self.send_response(400)
-                  self.end_headers()
-                  self.wfile.write(b"Missing folder parameter")
-                  return
-
-                rel_path = os.path.normpath(unquote(folder)).lstrip("/")
-                abs_path = os.path.abspath(os.path.join(get_profile_dir(self, PROFILE_ROOT), rel_path))
-
-                if not abs_path.startswith(os.path.abspath(get_profile_dir(self, PROFILE_ROOT))) or not os.path.isdir(abs_path):
-                  self.send_response(400)
-                  self.end_headers()
-                  self.wfile.write(b"Invalid folder path")
-                  return
-
-                # Generate a job id
-                job_id = str(uuid.uuid4())
-
-                # Start zip creation in a thread
-                threading.Thread(target=run_zip_job, args=(TEMP_ZIP_DIRECTORY, abs_path, job_id, progress_store, zip_paths, cancelled_jobs)).start()
-
-                # Respond immediately with job_id
-                self.send_response(200)
-                self.send_header("Content-Type", "application/json")
-                self.end_headers()
-                self.wfile.write(f'{{"job_id": "{job_id}"}}'.encode())
-            except Exception as e:
-                print("Error initiating zip:", e)
-                traceback.print_exc()
-                self.send_response(500)
-                self.end_headers()
-                self.wfile.write(b"Failed to initiate zip")
         elif parsed_url.path == "/zip-progress":
             try:
                 query = parse_qs(parsed_url.query)

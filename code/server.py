@@ -19,21 +19,22 @@ import threading
 
 import mimetypes
 
+from switchUtil import switch
 from deleteUtil import delete
 from logoutUtil import logout
 from renameUtil import rename
 from uploadUtil import upload
 from errorUtil import send_error_page
 from folderCreationUtil import create_folder
-from profileRemovalUtil import remove_profile
 from profileCreationUtil import create_profile
 from streamingUtil import send_file_with_range
 from publicFolderUtil import share_public_folder
 from profileLoginUtil import send_login_form, login
-from zipDownloadUtil import download_zip, bulk_download_zip
 from loadDirectoryUtil import listDirectory, translatePath
+from zipDownloadUtil import download_zip, bulk_download_zip
 from loadProfileUtil import load_public_profile, load_profile
 from profileUtil import get_profile_dir, send_profile_selection, send_add_profile_form
+from profileRemovalUtil import remove_profile, remove_profile_get, remove_profile_confirm_get
 
 # Directory to serve storage
 PROFILE_ROOT = "/nas/storage/profiles"
@@ -209,90 +210,20 @@ class FileHandler(SimpleHTTPRequestHandler):
 
         # ---  Serve files from public profile without authentication ---
         if requested_path.startswith(f"/{PUBLIC_PROFILE}/"):
-            load_public_profile(self, requested_path, PUBLIC_PROFILE, PROFILE_ROOT, CODE_DIRECTORY)
+            return load_public_profile(self, requested_path, PUBLIC_PROFILE, PROFILE_ROOT, CODE_DIRECTORY)
 
         for profile in PROFILE_LIST:
             if requested_path.startswith(f"/{profile}/"):
-                load_profile(self, profile, requested_path, PROFILE_ROOT, CODE_DIRECTORY)
-                break
+                return load_profile(self, profile, profile_name, requested_path, PROFILE_ROOT, CODE_DIRECTORY)
 
         if parsed_url.path == "/remove-profile":
-            # Read profiles again
-            try:
-                profile_dirs = [d for d in os.listdir(PROFILE_ROOT)
-                                if os.path.isdir(os.path.join(PROFILE_ROOT, d))]
-            except Exception as e:
-                send_error_page(self, 500, "Failed to read profiles", CODE_DIRECTORY)
-                return
-
-            # Build HTML to let user select which profile to delete
-            profiles_html = ""
-            profile_dirs.sort()
-            for prof in profile_dirs:
-                profiles_html += f'<li><a href="/confirm-remove?profile={quote(prof)}">{prof.split("_")[0]}</a></li>'
-
-            template_path = os.path.join(CODE_DIRECTORY, "html", "profileRemove.html")
-            with open(template_path, "r", encoding="utf-8") as f:
-                template = f.read()
-
-            # Replace placeholder with actual profiles HTML
-            html = template.replace("{{profiles_html}}", profiles_html)
-
-            encoded = html.encode("utf-8")
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html")
-            self.send_header("Content-Length", str(len(encoded)))
-            self.end_headers()
-            self.wfile.write(encoded)
-            return
+            return remove_profile_get(self, PROFILE_ROOT, CODE_DIRECTORY)
 
         if parsed_url.path == "/confirm-remove":
-            # Confirm removal page for the selected profile
-            if "profile" not in qs:
-                send_error_page(self, 400, "Profile not specified", CODE_DIRECTORY)
-                return
-
-            profile_to_remove = qs["profile"][0]
-            if profile_to_remove.startswith(f"{PUBLIC_PROFILE}"):
-                send_error_page(self, 400, "Cannot delete Public profile", CODE_DIRECTORY)
-                return
-            profile_path = os.path.join(PROFILE_ROOT, profile_to_remove)
-
-            if not os.path.isdir(profile_path):
-                send_error_page(self, 404, "Profile not found", CODE_DIRECTORY)
-                return
-
-            # Get error message from query string (if any)
-            error_msg = qs.get("error", [None])[0]
-            error_html = f'<p style="color:#ff4444; font-weight:bold;">{error_msg}</p>' if error_msg else ""
-
-            template_path = os.path.join(CODE_DIRECTORY, "html", "profileRemoveConfirm.html")
-            try:
-                with open(template_path, "r", encoding="utf-8") as f:
-                    html = f.read()
-            except FileNotFoundError:
-                send_error_page(self, 500, "Profile removal confirmation template not found", CODE_DIRECTORY)
-                return
-
-            html = html.replace("{{profile_name_to_remove}}", profile_to_remove.split("_")[0])
-            html = html.replace("{{profile_to_remove}}", profile_to_remove)
-            html = html.replace("{{error_html}}", error_html)
-
-            encoded = html.encode("utf-8")
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html")
-            self.send_header("Content-Length", str(len(encoded)))
-            self.end_headers()
-            self.wfile.write(encoded)
-            return
+            return remove_profile_confirm_get(self, qs, PUBLIC_PROFILE, PROFILE_ROOT, CODE_DIRECTORY)
 
         if parsed_url.path == "/switch":
-            self.send_response(302)
-            self.send_header("Set-Cookie", "profile=; Max-Age=0; Path=/")  # Clear cookie
-            self.send_header("Set-Cookie", "authenticated=; Max-Age=0; Path=/")  # Clear auth cookie
-            self.send_header("Location", "/")
-            self.end_headers()
-            return
+            return switch(self)
 
         if parsed_url.path == "/add-profile":
             send_add_profile_form(self, None, CODE_DIRECTORY)

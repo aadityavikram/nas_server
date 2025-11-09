@@ -42,7 +42,7 @@ def load_public_profile(handler, requested_path, public_profile, profile_root, c
 
     load_profile_file_dir(handler, file_path, code_directory)
 
-def load_profile(handler, profile, requested_path, profile_root, code_directory):
+def load_profile(handler, profile, profile_name, requested_path, profile_root, code_directory):
     parts = requested_path.strip("/").split("/", 1)
     if len(parts) >= 1:
         profileNameActual = parts[0]
@@ -52,7 +52,7 @@ def load_profile(handler, profile, requested_path, profile_root, code_directory)
     print(f"{profile_name} {profileNameActual}")
 
     if profile_name != profileNameActual:
-        send_error_page(self, 403, "You are not authorised", code_directory)
+        send_error_page(handler, 403, "You are not authorised", code_directory)
         return
 
     relpath = requested_path[len(profile) + 2:]
@@ -63,7 +63,7 @@ def load_profile(handler, profile, requested_path, profile_root, code_directory)
     # Prevent path traversal attacks (like /public/../secret.txt)
     file_path = os.path.realpath(file_path)
     if not file_path.startswith(os.path.realpath(os.path.join(profile_root, profile))):
-        send_error_page(self, 403, "You are not authorised", code_directory)
+        send_error_page(handler, 403, "You are not authorised", code_directory)
         return
 
     load_profile_file_dir(handler, file_path, code_directory)

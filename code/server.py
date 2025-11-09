@@ -31,6 +31,8 @@ from streamingUtil import send_file_with_range
 from publicFolderUtil import share_public_folder
 from profileLoginUtil import send_login_form, login
 from zipDownloadUtil import download_zip, bulk_download_zip
+from loadDirectoryUtil import listDirectory, translatePath
+from loadProfileUtil import load_public_profile, load_profile
 from profileUtil import get_profile_dir, send_profile_selection, send_add_profile_form
 
 # Directory to serve storage
@@ -70,204 +72,11 @@ def get_profiles_list():
 
 class FileHandler(SimpleHTTPRequestHandler):
 
-    def load_profile_file_dir(self, file_path):
-        if os.path.isdir(file_path):
-            print("Is directory")
-            f = self.list_directory(file_path)
-            if f:
-                self.wfile.write(f.read())
-            return
-
-        elif os.path.isfile(file_path):
-            print("Is file")
-            # Guess MIME type automatically
-            mime_type, _ = mimetypes.guess_type(file_path)
-            if not mime_type:
-                mime_type = "application/octet-stream"
-
-            try:
-                send_file_with_range(self, file_path, CODE_DIRECTORY)
-            except Exception as e:
-                send_error_page(self, 500, f"Error reading file: {e}", CODE_DIRECTORY)
-                return
-            return
-        else:
-            send_error_page(self, 404, "File not found", CODE_DIRECTORY)
-            return
-
     def list_directory(self, path):
-        try:
-            with open(os.path.join(CODE_DIRECTORY, "html", "template.html"), "r", encoding="utf-8") as f:
-                template = f.read()
-        except FileNotFoundError:
-            send_error_page(self, 500, "Application template not found", CODE_DIRECTORY)
-            return None
-
-        try:
-            file_list = os.listdir(path)
-        except OSError:
-            send_error_page(self, 404, "No permission to list directory", CODE_DIRECTORY)
-            return None
-
-        profile_dir = get_profile_dir(self, PROFILE_ROOT)
-        profile_name = os.path.basename(profile_dir) if profile_dir else ""
-
-        parsed_url = urlparse(self.path)
-        query_params = parse_qs(parsed_url.query)
-        search_query = query_params.get("q", [""])[0].strip().lower()
-
-        file_list.sort()
-        items = ""
-        
-        rel_path = os.path.relpath(path, get_profile_dir(self, PROFILE_ROOT))
-
-        # Normalize rel_path for URL
-        url_rel_path = rel_path.replace(os.sep, '/')
-
-        # If we're already at root, keep it "/"
-        back_link = f'/{url_rel_path}' if rel_path != "." else '/'
-
-        back_to_root_html = (
-            f'<div class="back-to-root"><a href="{back_link}">Back to current directory</a></div>'
-            if search_query != ''
-            else ''
-        )
-        
-        items += '''
-            <table class="file-table">
-                <thead>
-                    <tr>
-                        <th><input type="checkbox" id="selectAll"></th>
-                        <th>Name</th>
-                        <th>Type</th>
-                        <th>Size</th>
-                        <th>Modified</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-        '''
-        
-        if rel_path != ".":
-            items += '''
-                <tr class="folder">
-                    <td></td>
-                    <td><a href="../"><strong>Parent Directory</strong></a></td>
-                    <td>Folder</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td></td>
-                </tr>
-            '''
-
-        for name in file_list:
-            if name.startswith("."):
-                continue
-            if search_query and search_query not in name.lower():
-                continue
-
-            full_path = os.path.join(path, name)
-            try:
-                stat = os.stat(full_path)
-                size = stat.st_size
-                mtime = stat.st_mtime
-                last_modified = os.path.getmtime(full_path)
-                last_modified_str = datetime.fromtimestamp(last_modified).strftime("%Y-%m-%d %H:%M")
-            except Exception:
-                size = 0
-                last_modified_str = "Unknown"
-
-            size_kb = f"{size / 1024:.1f} KB" if os.path.isfile(full_path) else "-"
-            is_folder = os.path.isdir(full_path)
-            type_str = "Folder" if is_folder else "File"
-
-            href = quote(name) + "/" if is_folder else quote(name)
-            target_attr = ' target="_blank"' if not is_folder else ""
-            name_html = f'<a href="{href}"{target_attr}><strong>{name}</strong></a>'
-
-            if is_folder:
-                actions_html = f'''
-                    <div class="dropdown">
-                        <button class="dots-btn" onclick="toggleDropdown(event)">&#8942;</button>
-                        <div class="dropdown-content">
-                            <a href="javascript:void(0)" class="dropdown-link" onclick="startZipDownload('{quote(os.path.join(rel_path, name))}')">Download ZIP</a>
-                            <button class="rename-btn" onclick="renameItem('{name}')">Rename</button>
-                            <button class="delete-btn" onclick="deleteFile('{name}', false)">Delete</button>
-                            <button class="share-btn" onclick="showShareLink('{name}', '{profile_name}', 'folder')">Share Link</button>
-                '''
-            else:
-                actions_html = f'''
-                    <div class="dropdown">
-                        <button class="dots-btn" onclick="toggleDropdown(event)">&#8942;</button>
-                        <div class="dropdown-content">
-                            <a href="{quote(name)}" download class="dropdown-link">Download</a>
-                            <button class="preview-btn" onclick="previewFile('{name}')">Preview</button>
-                            <button class="rename-btn" onclick="renameItem('{name}')">Rename</button>
-                            <button class="delete-btn" onclick="deleteFile('{name}', false)">Delete</button>
-                            <button class="detail-btn" onclick="showDetails('{name}')">Details</button>
-                            <button class="share-btn" onclick="showShareLink('{name}', '{profile_name}', 'file')">Share Link</button>
-                        </div>
-                    </div>
-                '''
-
-            items += f'''
-                <tr>
-                    <td><input type="checkbox" class="fileCheckbox" data-name="{name}" data-path="{quote(name)}" data-type="{'folder' if is_folder else 'file'}"></td>
-                    <td>{name_html}</td>
-                    <td>{type_str}</td>
-                    <td>{size_kb}</td>
-                    <td>{last_modified_str}</td>
-                    <td>{actions_html}</td>
-                </tr>
-            '''
-        items += '''
-                </tbody>
-            </table>
-        '''
-
-
-        # Build breadcrumb navigation
-        parts = [] if rel_path == "." else rel_path.split(os.sep)
-        breadcrumb_html = '<a href="/">Home</a>'
-        cumulative_path = ""
-
-        for i, part in enumerate(parts):
-            cumulative_path = os.path.join(cumulative_path, part)
-            url_path = "/" + cumulative_path.replace(os.sep, "/")
-            breadcrumb_html += f'/<a href="{quote(url_path)}">{part}</a>'
-
-        currentFolderName = parts[-1] if parts else "Home"
-        currentFolderPath = f'<div class="currentFolder">Currently in: {breadcrumb_html}</div>'
-        
-        html = template.replace("{{currentFolderName}}", currentFolderName)
-        html = html.replace("{{profileName}}", profile_name.split("_")[0])
-        html = html.replace("{{currentFolderPath}}", currentFolderPath)
-        html = html.replace("{{file_table}}", items)
-        html = html.replace("{{query}}", search_query)
-        html = html.replace("{{backToRootHTML}}", back_to_root_html)
-
-        encoded = html.encode("utf-8", "surrogateescape")
-        f = BytesIO()
-        f.write(encoded)
-        f.seek(0)
-
-        self.send_response(200)
-        self.send_header("Content-type", "text/html; charset=utf-8")
-        self.send_header("Content-Length", str(len(encoded)))
-        self.end_headers()
-        return f
+        return listDirectory(self, path, PROFILE_ROOT, CODE_DIRECTORY)
 
     def translate_path(self, path):
-        path = urlparse(path).path
-        path = os.path.normpath(unquote(path)).lstrip("/\\")
-        full_path = os.path.join(get_profile_dir(self, PROFILE_ROOT), path)
-        abs_base = os.path.abspath(get_profile_dir(self, PROFILE_ROOT))
-        abs_path = os.path.abspath(full_path)
-
-        if not abs_path.startswith(abs_base):
-            return abs_base
-
-        return abs_path
+        return translatePath(self, path, PROFILE_ROOT)
         
     def do_POST(self):
         parsed_url = urlparse(self.path)
@@ -400,45 +209,11 @@ class FileHandler(SimpleHTTPRequestHandler):
 
         # ---  Serve files from public profile without authentication ---
         if requested_path.startswith(f"/{PUBLIC_PROFILE}/"):
-            relpath = requested_path[len(PUBLIC_PROFILE) + 2:]  # remove "/public/"
-            print(f"Rel Path: {relpath}")
-            file_path = os.path.join(PROFILE_ROOT, PUBLIC_PROFILE, relpath)
-            print(f"File Path: {file_path}")
-
-            # Prevent path traversal attacks (like /public/../secret.txt)
-            file_path = os.path.realpath(file_path)
-            if not file_path.startswith(os.path.realpath(os.path.join(PROFILE_ROOT, PUBLIC_PROFILE))):
-                send_error_page(self, 403, "You are not authorised", CODE_DIRECTORY)
-                return
-
-            self.load_profile_file_dir(file_path)
+            load_public_profile(self, requested_path, PUBLIC_PROFILE, PROFILE_ROOT, CODE_DIRECTORY)
 
         for profile in PROFILE_LIST:
             if requested_path.startswith(f"/{profile}/"):
-                parts = requested_path.strip("/").split("/", 1)
-                if len(parts) >= 1:
-                    profileNameActual = parts[0]
-                else:
-                    profileNameActual = ""
-
-                print(f"{profile_name} {profileNameActual}")
-
-                if profile_name != profileNameActual:
-                    send_error_page(self, 403, "You are not authorised", CODE_DIRECTORY)
-                    return
-
-                relpath = requested_path[len(profile) + 2:]
-                print(f"Rel Path: {relpath}")
-                file_path = os.path.join(PROFILE_ROOT, profile, relpath)
-                print(f"File Path: {file_path}")
-
-                # Prevent path traversal attacks (like /public/../secret.txt)
-                file_path = os.path.realpath(file_path)
-                if not file_path.startswith(os.path.realpath(os.path.join(PROFILE_ROOT, profile))):
-                    send_error_page(self, 403, "You are not authorised", CODE_DIRECTORY)
-                    return
-
-                self.load_profile_file_dir(file_path)
+                load_profile(self, profile, requested_path, PROFILE_ROOT, CODE_DIRECTORY)
                 break
 
         if parsed_url.path == "/remove-profile":
